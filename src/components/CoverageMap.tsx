@@ -4,7 +4,7 @@
 // in a chapter, in a detail view, in the source appendix, or only in the original.
 import type { Lesson, Placement } from "@/lib/types";
 import type { CoverageReport } from "@/lib/coverage";
-import { PLACE_LABEL, STATUS_LABEL } from "@/lib/labels";
+import { PLACE_LABEL, STATUS_LABEL, locLabel } from "@/lib/labels";
 
 const ORDER: Placement[] = ["intro", "chapter", "detail", "appendix", "original-only"];
 const HINT: Record<Placement, string> = {
@@ -19,9 +19,9 @@ export function CoverageMap({ lesson, coverage, onSelect }: { lesson: Lesson; co
   const statuses = Object.entries(coverage.statusCounts) as [keyof typeof STATUS_LABEL, number][];
   return (
     <section className="coverage" aria-labelledby="coverage-h">
-      <h2 id="coverage-h">Where each part of the paper lives</h2>
+      <h2 id="coverage-h">Where each part of the {lesson.meta.sourceKind === "text" ? "text" : "paper"} lives</h2>
       <p className="coverage__lead">
-        {lesson.inventory.length} inventoried passages, figures, formulas, footnotes and references. Every one has a place; click any entry to see it in the PDF.
+        {lesson.inventory.length} inventoried passages, figures, formulas, footnotes and references. Every one has a place; click any entry to see it in the {lesson.meta.sourceKind === "text" ? "original text" : "PDF"}.
       </p>
       <div className="coverage__grid">
         {ORDER.map((p) => {
@@ -40,7 +40,7 @@ export function CoverageMap({ lesson, coverage, onSelect }: { lesson: Lesson; co
                   {items.map((it) => (
                     <li key={it.id}>
                       <button type="button" onClick={() => onSelect(it.id)}>
-                        <span className="index__id">{it.id}</span> {it.title} <span className="coverage__page">p. {it.source.page}</span>
+                        <span className="index__id">{it.id}</span> {it.title} <span className="coverage__page">{locLabel(lesson.meta.sourceKind, it.source.page)}</span>
                       </button>
                     </li>
                   ))}
@@ -67,14 +67,14 @@ export function CoverageMap({ lesson, coverage, onSelect }: { lesson: Lesson; co
           </ul>
         </div>
         <div>
-          <h3>Pages of the PDF</h3>
+          <h3>{lesson.meta.sourceKind === "text" ? "Paragraphs of the text" : "Pages of the PDF"}</h3>
           <ol className="coverage__pages">
             {coverage.pages.map((p) => {
               const st = lesson.pageStatus.find((x) => x.page === p.page);
               const bad = st?.status === "unreadable";
               return (
                 <li key={p.page} className={bad ? "is-bad" : p.items === 0 ? "is-empty" : ""} title={bad ? `Page ${p.page}: no readable text layer` : `Page ${p.page}: ${p.items} entries`}>
-                  <span>p. {p.page}</span>
+                  <span>{locLabel(lesson.meta.sourceKind, p.page)}</span>
                   <strong>{bad ? "unreadable" : p.items}</strong>
                 </li>
               );

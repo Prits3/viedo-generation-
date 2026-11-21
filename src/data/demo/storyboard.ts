@@ -31,12 +31,17 @@ export const intro: Chapter = {
         labels: [
           { key: "street", text: "Urban heat" },
           { key: "satellite", text: "293 European cities, seen from orbit", ref: "M-01" },
+          { key: "surface", text: "Measured: the temperature of surfaces, seen from above", ref: "M-01" },
+          { key: "air", text: "Not measured: the air you feel", ref: "L-12" },
         ],
       },
+      // The duck stands on the pavement and looks up; the camera follows its gaze into orbit,
+      // then comes back down to show which surfaces a satellite actually measures.
       cues: [
-        { text: "A hot summer day in a European city. Planting trees is a well-known way to ease urban heat.", refs: ["B-01"], focus: "street" },
-        { text: "But do trees help equally everywhere?", refs: ["Q-01"], focus: "liftoff" },
-        { text: "To find out, this study looked down from orbit, at the surface temperatures of 293 European cities.", refs: ["M-01"], focus: "satellite" },
+        { text: "A hot summer day in a European city. Planting trees is a well-known way to ease urban heat.", refs: ["B-01"], focus: "street", shot: "street", duck: "enter" },
+        { text: "But do trees help equally everywhere?", refs: ["Q-01"], shot: "street", duck: "look", beats: [{ after: 1.5, track: "camera", do: "liftoff" }] },
+        { text: "To find out, this study looked down from orbit, at the surface temperatures of 293 European cities.", refs: ["M-01"], focus: "satellite", shot: "orbit", duck: "look" },
+        { text: "Back on the street, this is what a satellite measures: how hot surfaces are, seen from above. Not the air you feel.", refs: ["M-01", "L-12"], focus: "surface", shot: "surface", duck: "lean" },
       ],
     },
     {
@@ -69,11 +74,10 @@ export const intro: Chapter = {
         basisRef: "M-05",
       },
       cues: [
-        { text: "Short answer: no. Trees were cooler than built-up land in most cities, but by very different amounts.", refs: ["R-01", "R-25"], focus: "axis" },
-        { text: "Notice what is measured: land surface temperature. How hot surfaces are, seen from above. Not the air you feel.", refs: ["M-01", "L-12"], focus: "basis" },
-        { text: "In Central Europe, tree-covered areas were on average 8 to 12 kelvin cooler than continuous urban fabric.", refs: ["R-03", "M-05"], focus: "central" },
-        { text: "In Southern Europe, on the same scale, only 0 to 4 kelvin.", refs: ["R-02"], focus: "south" },
-        { text: "And in a few southern cities, not cooler at all.", refs: ["R-05"], focus: "exception" },
+        { text: "Short answer: no. Trees were cooler than built-up land in most cities, but by very different amounts.", refs: ["R-01", "R-25"], focus: "axis", duck: "enter" },
+        { text: "In Central Europe, tree-covered areas were on average 8 to 12 kelvin cooler than continuous urban fabric.", refs: ["R-03", "M-05"], focus: "central", duck: "point" },
+        { text: "In Southern Europe, on the same scale, only 0 to 4 kelvin.", refs: ["R-02"], focus: "south", duck: "point" },
+        { text: "And in a few southern cities, not cooler at all.", refs: ["R-05"], focus: "exception", duck: "wow" },
       ],
     },
     {

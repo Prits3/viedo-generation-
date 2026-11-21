@@ -1,18 +1,22 @@
 {
  "intro-city": {
-  "duration": 17.84,
+  "duration": 25.14,
   "cues": [
    {
     "start": 0.45,
-    "end": 6.79
+    "end": 6.8
    },
    {
-    "start": 7.11,
-    "end": 9.73
+    "start": 7.12,
+    "end": 9.71
    },
    {
-    "start": 10.05,
-    "end": 17.04
+    "start": 10.03,
+    "end": 16.98
+   },
+   {
+    "start": 17.3,
+    "end": 24.34
    }
   ]
  },
@@ -26,27 +30,23 @@
   ]
  },
  "intro-compare": {
-  "duration": 30.56,
+  "duration": 23.68,
   "cues": [
    {
     "start": 0.45,
-    "end": 6.68
+    "end": 6.91
    },
    {
-    "start": 7,
-    "end": 14.14
+    "start": 7.23,
+    "end": 14.38
    },
    {
-    "start": 14.46,
-    "end": 21.49
+    "start": 14.7,
+    "end": 19.31
    },
    {
-    "start": 21.81,
-    "end": 26.36
-   },
-   {
-    "start": 26.68,
-    "end": 29.76
+    "start": 19.63,
+    "end": 22.88
    }
   ]
  },

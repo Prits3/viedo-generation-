@@ -25,6 +25,16 @@ export const LIMITS = {
   modelTimeoutMs: 5 * 60 * 1000,
   /** Includes the model's thinking; a 9-page paper used about 29k at medium effort. */
   maxOutputTokens: 48_000,
+  /** Pasted text: shortest and longest accepted input, and the most paragraphs. */
+  minPastedChars: 400,
+  maxPastedChars: 60_000,
+  maxParagraphs: 200,
+  /** Retries of one model call after a temporary error (429, 5xx). */
+  maxRetries: 2,
+  /** Automatic repair attempts per scene that fails its check. */
+  maxSceneRepairs: 1,
+  /** Original figures or tables read with the vision model per lesson. */
+  maxFigures: 2,
 } as const;
 
 export const DEFAULT_MODEL = "claude-opus-5-5";
@@ -48,7 +58,10 @@ export type GenerateErrorCode =
   | "too_many_pages"
   | "no_text_layer"
   | "too_long"
+  | "invalid_text"
   | "missing_key"
+  | "no_model_access"
+  | "not_found"
   | "rate_limited"
   | "busy"
   | "model_refused"
@@ -63,10 +76,13 @@ export const ERROR_TEXT: Record<GenerateErrorCode, { title: string; help: string
   too_many_pages: { title: "This paper is too long", help: `The limit is ${LIMITS.maxPages} pages.` },
   no_text_layer: { title: "No readable text in this PDF", help: "It looks like a scan (images only). Live generation needs a PDF with a text layer; run OCR first." },
   too_long: { title: "This paper has too much text", help: "It exceeds the text limit for one generation. Nothing was cut off silently; try a shorter paper." },
-  missing_key: { title: "Live generation is not configured", help: "The server has no model API key (ANTHROPIC_API_KEY). The example lesson works without one." },
+  invalid_text: { title: "This text cannot be used", help: `Paste between ${LIMITS.minPastedChars} and ${LIMITS.maxPastedChars.toLocaleString("en-US")} characters of running text.` },
+  missing_key: { title: "Live generation is not configured", help: "The server has no usable model key (AWS_BEARER_TOKEN_BEDROCK or ANTHROPIC_API_KEY). The example lesson works without one." },
+  no_model_access: { title: "This account cannot use the selected model", help: "The key is valid, but the model is not enabled for it. Choose another model or provider in the server configuration." },
+  not_found: { title: "This lesson does not exist", help: "It may have been deleted. Generate it again or open the example." },
   rate_limited: { title: "Rate limit reached", help: "Too many generations in a short time. Wait a few minutes and try again." },
   busy: { title: "The generator is busy", help: "Other papers are being processed right now. Try again in a minute." },
-  model_refused: { title: "The model declined this paper", help: "A safety filter stopped the request. Try a different paper." },
+  model_refused: { title: "The model declined this content", help: "A safety filter stopped the request, so the run was ended. Try a different source." },
   invalid_model_output: { title: "The generated storyboard was not usable", help: "The model output failed validation, so nothing was rendered. Trying again often helps." },
   upstream_error: { title: "The model service returned an error", help: "This is usually temporary. Try again in a moment." },
   timeout: { title: "Generation took too long", help: "The model call was stopped. Try a shorter paper." },

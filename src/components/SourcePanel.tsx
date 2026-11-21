@@ -6,7 +6,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { InventoryItem, Lesson } from "@/lib/types";
 import type { CoverageReport, SceneRef } from "@/lib/coverage";
-import { INDEX_FILTERS, PLACE_LABEL, STATUS_LABEL, STATUS_SHORT, TYPE_LABEL } from "@/lib/labels";
+import { INDEX_FILTERS, PLACE_LABEL, STATUS_LABEL, STATUS_SHORT, TYPE_LABEL, locLabel, locLong } from "@/lib/labels";
+import { canon, canonWithMap } from "@/lib/text";
 import { PdfPage } from "./PdfPage";
 
 interface Props {
@@ -18,6 +19,8 @@ interface Props {
   onSelect: (id: string) => void;
   onJump: (ref: SceneRef) => void;
   onOpenDetail: (sectionId: string, itemId: string) => void;
+  /** Set while playback is paused because a source was opened from the video. */
+  onResume?: () => void;
 }
 
 export function StatusBadge({ status }: { status: InventoryItem["status"] }) {
@@ -29,13 +32,14 @@ export function StatusBadge({ status }: { status: InventoryItem["status"] }) {
   );
 }
 
-export function SourcePanel({ lesson, coverage, selectedId, tab, onTab, onSelect, onJump, onOpenDetail }: Props) {
+export function SourcePanel({ lesson, coverage, selectedId, tab, onTab, onSelect, onJump, onOpenDetail, onResume }: Props) {
+  const isText = lesson.meta.sourceKind === "text";
   const item = useMemo(() => lesson.inventory.find((it) => it.id === selectedId), [lesson, selectedId]);
   return (
     <section className="panel" aria-label="Sources">
       <div className="panel__tabs" role="tablist" aria-label="Source views">
         <button type="button" role="tab" id="tab-source" aria-selected={tab === "source"} aria-controls="tabpanel-source" onClick={() => onTab("source")}>
-          Source in the PDF
+          {isText ? "Source in the text" : "Source in the PDF"}
         </button>
         <button type="button" role="tab" id="tab-index" aria-selected={tab === "index"} aria-controls="tabpanel-index" onClick={() => onTab("index")}>
           Source index <span className="count">{lesson.inventory.length}</span>
@@ -44,12 +48,12 @@ export function SourcePanel({ lesson, coverage, selectedId, tab, onTab, onSelect
       {tab === "source" ? (
         <div role="tabpanel" id="tabpanel-source" aria-labelledby="tab-source" className="panel__body">
           {item ? (
-            <SourceCard key={item.id} lesson={lesson} item={item} coverage={coverage} onJump={onJump} onOpenDetail={onOpenDetail} />
+            <SourceCard key={item.id} lesson={lesson} item={item} coverage={coverage} onJump={onJump} onOpenDetail={onOpenDetail} onResume={onResume} />
           ) : (
             <div className="panel__empty">
               <p>
-                <strong>Check any statement.</strong> Click a number, a figure label or a <span className="source-tag source-tag--demo">p. 3</span> tag in the video to see the exact passage in the original
-                PDF here.
+                <strong>Check any statement.</strong> Click a number, a figure label or a <span className="source-tag source-tag--demo">{locLabel(lesson.meta.sourceKind, 3)}</span> tag in the video to see the exact passage in the original
+                {isText ? " text" : " PDF"} here. The video pauses and continues where you left off.
               </p>
               <p>Or browse the source index and jump from a passage back to the scene that explains it.</p>
               <button type="button" className="btn btn--ghost" onClick={() => onTab("index")}>
@@ -67,7 +71,9 @@ export function SourcePanel({ lesson, coverage, selectedId, tab, onTab, onSelect
   );
 }
 
-function SourceCard({ lesson, item, coverage, onJump, onOpenDetail }: { lesson: Lesson; item: InventoryItem; coverage: CoverageReport; onJump: (r: SceneRef) => void; onOpenDetail: (s: string, i: string) => void }) {
+function SourceCard({ lesson, item, coverage, onJump, onOpenDetail, onResume }: { lesson: Lesson; item: InventoryItem; coverage: CoverageReport; onJump: (r: SceneRef) => void; onOpenDetail: (s: string, i: string) => void; onResume?: () => void }) {
+  const isText = lesson.meta.sourceKind === "text";
+  const block = isText ? lesson.sourceBlocks?.find((b) => b.n === item.source.page) : undefined;
   const [located, setLocated] = useState<boolean | null>(null);
   useEffect(() => setLocated(null), [item.id]);
   const loc = coverage.locations[item.id];
@@ -75,6 +81,11 @@ function SourceCard({ lesson, item, coverage, onJump, onOpenDetail }: { lesson: 
   const pageInfo = lesson.pageStatus.find((p) => p.page === item.source.page);
   return (
     <article className="srccard" data-item={item.id}>
+      {onResume && (
+        <button type="button" className="btn btn--primary btn--small srccard__resume" onClick={onResume} data-action="resume-from-source">
+          <span aria-hidden="true">▶</span> Close and continue watching
+        </button>
+      )}
       <header className="srccard__head">
         <span className="srccard__id">{item.id}</span>
         <span className="chip">{TYPE_LABEL[item.type]}</span>
@@ -85,7 +96,7 @@ function SourceCard({ lesson, item, coverage, onJump, onOpenDetail }: { lesson: 
 
       <div className="srccard__where">
         <strong>
-          {item.status === "external" ? "Cited on" : "Original"}: page {item.source.page}
+          {item.status === "external" ? "Cited in" : "Original"}: {locLong(lesson.meta.sourceKind, item.source.page)}
           {item.source.label ? ` · ${item.source.label}` : ""}
         </strong>
         <span>{item.source.section}</span>
@@ -98,9 +109,10 @@ function SourceCard({ lesson, item, coverage, onJump, onOpenDetail }: { lesson: 
         </blockquote>
       )}
       {item.note && <p className="srccard__note">{item.note}</p>}
-      {item.status === "external" && <p className="srccard__note srccard__note--warn">This material is not part of the PDF. The page below only shows where the article refers to it.</p>}
+      {item.status === "external" && <p className="srccard__note srccard__note--warn">This material is not part of the source. The passage below only shows where it is referred to.</p>}
 
-      {item.source.page > 0 && (
+      {isText && block && <TextPassage block={block} quote={item.source.quote} />}
+      {!isText && item.source.page > 0 && (
         <>
           {pageInfo?.status === "unreadable" ? (
             <p className="srccard__note srccard__note--warn">Page {item.source.page} has no readable text layer; the passage cannot be highlighted.</p>
@@ -159,7 +171,7 @@ function SourceCard({ lesson, item, coverage, onJump, onOpenDetail }: { lesson: 
               </button>
             </li>
           ))}
-          {loc?.placements.includes("original-only") && <li className="srccard__only">Only available in the original PDF; not covered in the lesson.</li>}
+          {loc?.placements.includes("original-only") && <li className="srccard__only">Only available in the original; not covered in the lesson.</li>}
         </ul>
       </div>
     </article>
@@ -205,7 +217,7 @@ function SourceIndex({ lesson, coverage, selectedId, onSelect, onJump, onOpenDet
         return (
           <section key={page} className="index__page">
             <h4>
-              Page {page}
+              {locLong(lesson.meta.sourceKind, page).replace(/^./, (c) => c.toUpperCase())}
               {ps?.status === "unreadable" && <span className="status status--unclear">no readable text</span>}
             </h4>
             <ul>
@@ -244,6 +256,37 @@ function SourceIndex({ lesson, coverage, selectedId, onSelect, onJump, onOpenDet
         );
       })}
       {list.length === 0 && <p className="panel__empty">No entry matches this search.</p>}
+    </div>
+  );
+}
+
+/** One paragraph of a pasted text with the cited passage marked. */
+function TextPassage({ block, quote }: { block: { n: number; heading?: string; text: string }; quote?: string }) {
+  const range = useMemo(() => {
+    const q = quote ? canon(quote) : "";
+    if (q.length < 8) return null;
+    const { text, map } = canonWithMap(block.text);
+    const at = text.indexOf(q);
+    return at < 0 ? null : { start: map[at], end: map[at + q.length - 1] + 1 };
+  }, [block, quote]);
+  return (
+    <div className="textsrc" data-located={range ? "true" : "false"}>
+      <p className={`srccard__note ${range ? "srccard__note--ok" : "srccard__note--warn"}`}>{range ? "Highlighted in the original paragraph below." : quote ? "The passage could not be highlighted automatically; the whole paragraph is shown." : "The original paragraph:"}</p>
+      <div className="textsrc__box">
+        <span className="textsrc__n">§{block.n}</span>
+        {block.heading && <strong className="textsrc__heading">{block.heading}</strong>}
+        <p>
+          {range ? (
+            <>
+              {block.text.slice(0, range.start)}
+              <mark>{block.text.slice(range.start, range.end)}</mark>
+              {block.text.slice(range.end)}
+            </>
+          ) : (
+            block.text
+          )}
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Library } from "@/components/Library";
 
 export default function Home() {
   return (
@@ -9,8 +10,8 @@ export default function Home() {
       <section className="hero">
         <h1>Watch the paper. Check every claim.</h1>
         <p className="lead">
-          PaperScenes turns a research paper into a short narrated, visual lesson. You set the pace, the sound, the captions and the amount of motion. Every statement links straight to its
-          passage in the original PDF.
+          PaperScenes turns a research paper or a text into a short narrated, visual lesson, guided by a small robot duck. You set the pace, the sound, the captions and the amount of motion.
+          Every statement links straight to its passage in the original.
         </p>
         <div className="hero__actions">
           <Link href="/lesson/demo" className="btn btn--primary" data-action="try-example">
@@ -19,7 +20,7 @@ export default function Home() {
           </Link>
           <Link href="/upload" className="btn" data-action="upload">
             <strong>Upload a PDF</strong>
-            <small>Generate a lesson from your own paper</small>
+            <small>Or paste a text, and get your own lesson</small>
           </Link>
         </div>
       </section>
@@ -41,6 +42,7 @@ export default function Home() {
           <span>A content inventory shows where each result, figure, formula, footnote and reference lives.</span>
         </li>
       </ul>
+      <Library heading="Lessons made on this server" />
       <div className="example">
         <strong>Example paper</strong>
         <span>Schwaab et al. (2021). The role of urban trees in reducing land surface temperatures in European cities. Nature Communications 12:6763.</span>

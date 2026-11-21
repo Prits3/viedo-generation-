@@ -8,17 +8,19 @@ export interface LessonCtx {
   /** Open the source view for an inventory entry (scene -> original PDF). */
   openSource: (id: string) => void;
   selectedId?: string;
+  /** Short label of a source location: "p. 3" for a PDF page, "§3" for a paragraph. */
+  loc: (n: number) => string;
 }
 
-export const LessonContext = createContext<LessonCtx>({ item: () => undefined, openSource: () => {} });
+export const LessonContext = createContext<LessonCtx>({ item: () => undefined, openSource: () => {}, loc: (n) => `p. ${n}` });
 export const useLesson = () => useContext(LessonContext);
 
 /** Small "p. 3" button that jumps from an on-screen element to its passage in the PDF. */
 export function SourceTag({ id, label, className = "" }: { id?: string; label?: string; className?: string }) {
-  const { item, openSource, selectedId } = useLesson();
+  const { item, openSource, selectedId, loc } = useLesson();
   const it = item(id);
   if (!it || !id) return null;
-  const where = it.source.page > 0 ? `p. ${it.source.page}` : "external";
+  const where = loc(it.source.page);
   return (
     <button
       type="button"
@@ -28,7 +30,7 @@ export function SourceTag({ id, label, className = "" }: { id?: string; label?: 
         openSource(id);
       }}
       title={`Show the source: ${it.title} (${where})`}
-      aria-label={`${label ?? it.title}: show source, ${where === "external" ? "external material" : "page " + it.source.page}`}
+      aria-label={`${label ?? it.title}: show source, ${where === "external" ? "external material" : where}`}
     >
       <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
         <path d="M4 1.5h5.5L13 5v9.5H4z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />

@@ -4,7 +4,7 @@
 // (full reference list, formulas, footnotes, supplements with their own status).
 import type { Lesson } from "@/lib/types";
 import type { CoverageReport, SceneRef } from "@/lib/coverage";
-import { TYPE_LABEL } from "@/lib/labels";
+import { TYPE_LABEL, locLabel } from "@/lib/labels";
 import { StatusBadge } from "./SourcePanel";
 
 interface Props {
@@ -79,7 +79,7 @@ export function DetailSections({ lesson, coverage, open, onOpen, onSource, onJum
                 )}
                 <span className="dsec__actions">
                   <button type="button" className="source-tag" onClick={() => onSource(id)}>
-                    {it.status === "external" ? "Where it is cited" : "Show in PDF"} · p. {it.source.page}
+                    {it.status === "external" ? "Where it is cited" : lesson.meta.sourceKind === "text" ? "Show in the text" : "Show in PDF"} · {locLabel(lesson.meta.sourceKind, it.source.page)}
                   </button>
                   {scene && (
                     <button type="button" className="source-tag source-tag--jump" onClick={() => onJump(scene)}>

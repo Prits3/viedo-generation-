@@ -70,6 +70,8 @@ export interface InventoryItem {
   source: SourceRef;
   /** Intended home in the lesson; coverage check confirms it is actually reachable there. */
   place: Placement;
+  /** Placement planned in the inventory step, before the storyboard decided what it uses. */
+  planned?: Placement;
   status: CheckStatus;
   note?: string;
 }
@@ -82,7 +84,36 @@ export type SceneType =
   | "map"
   | "figure"
   | "points"
-  | "timeline";
+  | "timeline"
+  | "milestones"
+  | "statement";
+
+/** What the mascot does. "away" = not on stage yet. */
+export type MascotPose = "enter" | "look" | "lean" | "point" | "wow" | "listen" | "idle";
+/** Camera framing. street/liftoff/orbit/surface belong to the establishing scene. */
+export type Shot = "wide" | "close" | "street" | "liftoff" | "orbit" | "surface";
+
+/**
+ * One timed action on the shared playback clock of a scene (seconds from scene start).
+ * The renderer derives the whole picture from the actions at or before the current time,
+ * so pause, seek and pace changes always show a consistent state.
+ */
+export interface Action {
+  at: number;
+  track: "mascot" | "camera" | "graphic";
+  /** mascot: a MascotPose; camera: a Shot; graphic: "focus" | "rest". */
+  do: string;
+  /** Key of the on-screen element the action is about. */
+  target?: string;
+}
+
+/** An extra action inside a sentence, relative to its start. */
+export interface Beat {
+  after: number;
+  track: Action["track"];
+  do: string;
+  target?: string;
+}
 
 export interface Cue {
   /** Caption text. */
@@ -95,6 +126,11 @@ export interface Cue {
   connective?: boolean;
   /** Key of the on-screen element this sentence is about. */
   focus?: string;
+  /** Direction for the mascot while this sentence is spoken (auto-directed when absent). */
+  duck?: MascotPose;
+  /** Camera framing for this sentence. */
+  shot?: Shot;
+  beats?: Beat[];
   /** Filled by the narration build (seconds within the scene). */
   start?: number;
   end?: number;
@@ -199,6 +235,31 @@ export interface EstablishingData {
   labels: { key: string; text: string; ref?: string }[];
 }
 
+export interface MilestoneItem {
+  key: string;
+  /** Short date or order label, e.g. "1953". */
+  tag: string;
+  title: string;
+  body: string;
+  ref?: string;
+}
+
+export interface StatementData {
+  text: string;
+  /** Optional comparison to something familiar. Always labelled as an analogy on screen. */
+  analogy?: string;
+  icon: string;
+  ref?: string;
+}
+
+/** Result of the automatic scene check after generation. */
+export interface SceneCheck {
+  status: "ok" | "repaired" | "flagged";
+  problems: string[];
+  /** How often this scene was generated (1 = first draft). */
+  attempts: number;
+}
+
 export interface Scene {
   id: string;
   type: SceneType;
@@ -215,12 +276,17 @@ export interface Scene {
   points?: { items: PointItem[] };
   timeline?: TimelineData;
   establishing?: EstablishingData;
+  milestones?: { items: MilestoneItem[] };
+  statement?: StatementData;
+  /** Compiled timeline of mascot, camera and graphic actions (see lib/actions.ts). */
+  actions?: Action[];
+  check?: SceneCheck;
   /** Large text for question scenes. */
   headline?: string;
   kicker?: string;
 }
 
-export type ChapterKind = "intro" | "question" | "method" | "results" | "limits";
+export type ChapterKind = "intro" | "question" | "method" | "results" | "limits" | "background" | "story" | "takeaway";
 
 export interface Chapter {
   id: string;
@@ -270,7 +336,17 @@ export interface LessonMeta {
   doi?: string;
   license?: string;
   pdfUrl: string;
+  /** Number of source locations: PDF pages or text paragraphs. */
   pages: number;
+  /** pdf: locations are pages. text: locations are paragraphs of the pasted text. */
+  sourceKind?: "pdf" | "text";
+}
+
+/** One paragraph of a pasted text (the "page" of a text lesson). */
+export interface SourceBlock {
+  n: number;
+  heading?: string;
+  text: string;
 }
 
 export interface Lesson {
@@ -286,4 +362,6 @@ export interface Lesson {
   verification: Verification;
   /** True when pre-recorded narration ships with the lesson. */
   hasRecordedVoice: boolean;
+  /** Original paragraphs, for lessons made from pasted text. */
+  sourceBlocks?: SourceBlock[];
 }

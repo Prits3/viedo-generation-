@@ -73,3 +73,12 @@ export const TYPE_PLURAL: Record<ItemType, string> = {
   supplement: "Supplements (external)",
   meta: "Article information",
 };
+
+/** "p. 3" for PDF pages, "§3" for paragraphs of a pasted text. */
+export function locLabel(kind: "pdf" | "text" | undefined, n: number): string {
+  if (n <= 0) return "external";
+  return kind === "text" ? `§${n}` : `p. ${n}`;
+}
+export function locLong(kind: "pdf" | "text" | undefined, n: number): string {
+  return kind === "text" ? `paragraph ${n}` : `page ${n}`;
+}

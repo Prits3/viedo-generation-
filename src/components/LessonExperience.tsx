@@ -6,10 +6,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Lesson, Scene } from "@/lib/types";
 import { analyzeCoverage, type SceneRef } from "@/lib/coverage";
-import { formatTime } from "@/lib/labels";
+import { formatTime, locLabel } from "@/lib/labels";
+import { stateAt } from "@/lib/actions";
 import { LessonContext } from "./LessonContext";
-import { cueIndexAt, usePlayback } from "./usePlayback";
+import { usePlayback } from "./usePlayback";
 import { SceneView } from "./scenes/SceneView";
+import { Mascot } from "./Duck";
 import { SourcePanel } from "./SourcePanel";
 import { CoverageMap } from "./CoverageMap";
 import { DetailSections } from "./DetailSections";
@@ -22,6 +24,14 @@ interface Entry {
 }
 
 const RATES = [0.75, 1, 1.25, 1.5];
+const REGENERABLE: Scene["type"][] = ["question", "statement", "points", "flow", "milestones", "comparison"];
+
+interface Props {
+  lesson: Lesson;
+  notice?: React.ReactNode;
+  /** Stored lessons: generates one scene again. Resolves to an error text, or null on success. */
+  onRegenerate?: (sceneId: string) => Promise<string | null>;
+}
 
 function usePreference(key: string, initial: boolean | null): [boolean | null, (v: boolean) => void] {
   const [value, setValue] = useState<boolean | null>(initial);
@@ -47,7 +57,7 @@ function usePreference(key: string, initial: boolean | null): [boolean | null, (
   return [value, set];
 }
 
-export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: React.ReactNode }) {
+export function LessonExperience({ lesson, notice, onRegenerate }: Props) {
   const coverage = useMemo(() => analyzeCoverage(lesson), [lesson]);
   const byId = useMemo(() => new Map(lesson.inventory.map((it) => [it.id, it])), [lesson]);
   const playlist = useMemo<Entry[]>(
@@ -89,6 +99,9 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
   const [tab, setTab] = useState<"source" | "index">("source");
   const [panelOpen, setPanelOpen] = useState(false);
   const [openSection, setOpenSection] = useState<{ id: string; item?: string } | null>(null);
+  // True while playback is paused because a source was opened from the running video.
+  const [held, setHeld] = useState(false);
+  const [regen, setRegen] = useState<{ id: string; error?: string } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
 
@@ -100,12 +113,35 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
       setSelectedId(id);
       setTab("source");
       setPanelOpen(true);
+      if (pb.playing) setHeld(true);
       pb.pause();
       if (isNarrow()) requestAnimationFrame(() => scrollTo(panelRef.current));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pb.pause, reduced],
+    [pb.pause, pb.playing, reduced],
   );
+
+  // Close the source and go on at the same moment of the same scene.
+  const resumeFromSource = useCallback(() => {
+    setHeld(false);
+    setSelectedId(undefined);
+    if (isNarrow()) {
+      setPanelOpen(false);
+      scrollTo(playerRef.current);
+    }
+    pb.play();
+    playerRef.current?.querySelector<HTMLElement>(".stage")?.focus({ preventScroll: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pb.play, reduced]);
+  useEffect(() => {
+    if (pb.playing) setHeld(false);
+  }, [pb.playing, pb.index]);
+  useEffect(() => {
+    if (!held) return;
+    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && resumeFromSource();
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [held, resumeFromSource]);
 
   const jumpToScene = useCallback(
     (ref: SceneRef) => {
@@ -113,6 +149,7 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
       if (idx < 0) return;
       const cue = playlist[idx].scene.cues[ref.cueIndex];
       setIntroDone(false);
+      setHeld(false);
       pb.goTo(idx, Math.max(0, (cue?.start ?? 0) - 0.05), true);
       requestAnimationFrame(() => {
         scrollTo(playerRef.current);
@@ -135,7 +172,8 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
 
   const entry = playlist[pb.index];
   const scene = entry.scene;
-  const step = pb.started ? cueIndexAt(scene, pb.t) : -1;
+  const sceneState = useMemo(() => stateAt(scene, pb.started ? pb.t : -1), [scene, pb.started, pb.t]);
+  const step = sceneState.step;
   const cue = step >= 0 ? scene.cues[step] : undefined;
   const duration = scene.duration ?? 0;
   const inIntro = entry.chapterIndex < 0;
@@ -176,7 +214,18 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
     else if (e.key === "c" || e.key === "C") setCaptions(!captions);
   };
 
-  const ctx = useMemo(() => ({ item: (id: string | undefined) => (id ? byId.get(id) : undefined), openSource, selectedId }), [byId, openSource, selectedId]);
+  const kind = lesson.meta.sourceKind;
+  const ctx = useMemo(() => ({ item: (id: string | undefined) => (id ? byId.get(id) : undefined), openSource, selectedId, loc: (n: number) => locLabel(kind, n) }), [byId, openSource, selectedId, kind]);
+
+  const canRegenerate = Boolean(onRegenerate) && REGENERABLE.includes(scene.type);
+  const regenerate = async () => {
+    if (!onRegenerate || regen?.id === scene.id) return;
+    pb.pause();
+    setRegen({ id: scene.id });
+    const error = await onRegenerate(scene.id);
+    setRegen(error ? { id: "", error } : null);
+    if (!error) pb.goTo(pb.index, 0, false);
+  };
   const voiceLabel = pb.voice === "recorded" ? "Recorded narration" : pb.voice === "browser" ? "Browser voice" : "No voice available: captions only";
 
   return (
@@ -215,8 +264,17 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
                 ))}
               </nav>
 
-              <div className="stage" tabIndex={0} role="group" aria-label={`Scene: ${scene.title}. ${scene.question}`} onClick={(e) => (e.target as HTMLElement).closest("button, a") || pb.toggle()}>
-                <SceneView key={scene.id} scene={scene} step={step} reduced={reduced} />
+              <div className="stage" tabIndex={0} role="group" aria-label={`Scene: ${scene.title}. ${scene.question}`} data-scene-type={scene.type} data-paused-for-source={held ? "true" : undefined} onClick={(e) => (e.target as HTMLElement).closest("button, a") || pb.toggle()}>
+                <SceneView key={scene.id} scene={scene} state={sceneState} reduced={reduced} />
+                {scene.type !== "establishing" && <Mascot pose={sceneState.mascot.pose} target={sceneState.mascot.target} sceneKey={`${scene.id}:${lesson.id}`} />}
+                {held && (
+                  <div className="heldbar" role="status">
+                    <span>Paused to show the source</span>
+                    <button type="button" className="btn btn--primary btn--small" onClick={resumeFromSource} data-action="continue">
+                      <span aria-hidden="true">▶</span> Continue
+                    </button>
+                  </div>
+                )}
                 {showStart && (
                   <div className="overlay">
                     <button type="button" className="bigplay" onClick={pb.play} autoFocus>
@@ -255,7 +313,7 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
                     if (!it) return null;
                     return (
                       <button key={r} type="button" className={`source-tag ${selectedId === r ? "is-selected" : ""}`} onClick={() => openSource(r)} title={it.title}>
-                        {it.title} · {it.source.page > 0 ? `p. ${it.source.page}` : "external"}
+                        {it.title} · {locLabel(kind, it.source.page)}
                       </button>
                     );
                   })
@@ -326,6 +384,27 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
                 </ol>
                 <span className={`voice voice--${pb.voice}`}>{voiceLabel}</span>
               </div>
+              {(scene.check?.status === "flagged" || canRegenerate || regen?.error) && (
+                <div className={`scenecheck ${scene.check?.status === "flagged" ? "scenecheck--flagged" : ""}`} data-scene-check={scene.check?.status ?? "none"}>
+                  {scene.check?.status === "flagged" && (
+                    <div>
+                      <strong>This scene did not pass the automatic check.</strong>
+                      <ul>
+                        {scene.check.problems.slice(0, 4).map((p) => (
+                          <li key={p}>{p}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {scene.check?.status === "repaired" && <span className="scenecheck__note">This scene was regenerated after a failed check.</span>}
+                  {regen?.error && <span className="scenecheck__note scenecheck__note--bad">{regen.error}</span>}
+                  {canRegenerate && (
+                    <button type="button" className="btn btn--ghost btn--small" onClick={regenerate} disabled={regen?.id === scene.id} data-action="regenerate-scene">
+                      {regen?.id === scene.id ? "Regenerating this scene…" : "Regenerate this scene"}
+                    </button>
+                  )}
+                </div>
+              )}
               {!inIntro || introDone ? null : (
                 <button type="button" className="btn btn--ghost watchfull" onClick={watchFull}>
                   Skip to the full paper →
@@ -342,7 +421,7 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
 
           <aside className={`lesson__side ${panelOpen ? "is-open" : ""}`} ref={panelRef}>
             <button type="button" className="side-toggle" aria-expanded={panelOpen} aria-controls="source-panel" onClick={() => setPanelOpen(!panelOpen)}>
-              <span>Sources: original PDF and index</span>
+              <span>Sources: original {kind === "text" ? "text" : "PDF"} and index</span>
               <span aria-hidden="true">{panelOpen ? "▲" : "▼"}</span>
             </button>
             <div id="source-panel" className="side-body">
@@ -358,6 +437,7 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
                 }}
                 onJump={jumpToScene}
                 onOpenDetail={openDetail}
+                onResume={held ? resumeFromSource : undefined}
               />
             </div>
           </aside>

@@ -58,6 +58,8 @@ export function sceneRefs(scene: Scene): { ref: string; cueIndex: number }[] {
   add(scene.timeline?.marker.ref, "marker");
   scene.timeline?.facts.forEach((f) => add(f.ref, f.key));
   scene.establishing?.labels.forEach((l) => add(l.ref, l.key));
+  scene.milestones?.items.forEach((m) => add(m.ref, m.key));
+  add(scene.statement?.ref, "idea");
   return out;
 }
 

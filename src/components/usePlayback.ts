@@ -6,6 +6,7 @@
 //    and the clock waits for it. If no voice is available, captions and visuals still play.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Scene } from "@/lib/types";
+import { cueIndexAt } from "@/lib/actions";
 
 export type VoiceKind = "recorded" | "browser" | "none";
 
@@ -33,12 +34,6 @@ interface Options {
   browserVoice?: boolean;
 }
 
-export function cueIndexAt(scene: Scene, t: number): number {
-  let k = -1;
-  for (let i = 0; i < scene.cues.length; i++) if ((scene.cues[i].start ?? 0) <= t + 0.001) k = i;
-  return k;
-}
-
 export function usePlayback(scenes: Scene[], opts: Options = {}): Playback {
   const [index, setIndex] = useState(0);
   const [t, setT] = useState(0);
@@ -50,6 +45,11 @@ export function usePlayback(scenes: Scene[], opts: Options = {}): Playback {
   const [ttsOk, setTtsOk] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // play() is rejected with AbortError when a newer scene starts loading before the old one began
+  // to play (quick scene changes). That is not a reason to stop; only a real refusal is.
+  const playRejected = useRef((e: unknown) => {
+    if ((e as { name?: string } | null)?.name !== "AbortError") setPlaying(false);
+  }).current;
   const s = useRef({ index, t, playing, rate, muted, scenes, opts, audioFailed, ttsOk });
   s.current = { index, t, playing, rate, muted, scenes, opts, audioFailed, ttsOk };
   const tts = useRef({ cue: -1, sceneId: "", speaking: false, started: false, askedAt: 0, holdSince: 0 });
@@ -81,10 +81,23 @@ export function usePlayback(scenes: Scene[], opts: Options = {}): Playback {
       const cur = s.current.scenes[s.current.index];
       if (cur?.audio) setAudioFailed((f) => ({ ...f, [cur.id]: true }));
     };
+    // A seek that arrives while a new recording is still loading would be lost; apply it once the
+    // file knows its length, so the clock starts where the viewer asked.
+    const onLoaded = () => {
+      if (Math.abs(a.currentTime - s.current.t) > 0.3) {
+        try {
+          a.currentTime = s.current.t;
+        } catch {
+          /* ignore */
+        }
+      }
+    };
     a.addEventListener("error", onError);
+    a.addEventListener("loadedmetadata", onLoaded);
     return () => {
       a.pause();
       a.removeEventListener("error", onError);
+      a.removeEventListener("loadedmetadata", onLoaded);
       a.removeAttribute("src");
       audioRef.current = null;
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
@@ -108,12 +121,12 @@ export function usePlayback(scenes: Scene[], opts: Options = {}): Playback {
       } catch {
         /* not seekable yet; the loop keeps state in sync */
       }
-      if (s.current.playing) a.play().catch(() => setPlaying(false));
+      if (s.current.playing) a.play().catch(playRejected);
     } else {
       a.pause();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene?.id, useAudio]);
+  }, [scene?.id, scene?.audio, useAudio]);
 
   const finishScene = useCallback(() => {
     const cur = s.current;
@@ -141,9 +154,17 @@ export function usePlayback(scenes: Scene[], opts: Options = {}): Playback {
       const cur = s.current;
       const a = audioRef.current;
       if (useAudio && a) {
-        if (a.ended || a.currentTime >= duration - 0.03) return finishScene();
-        if (a.paused && a.readyState >= 2) a.play().catch(() => setPlaying(false));
-        setT(a.currentTime);
+        // While a recording is still loading (after a scene change) or seeking, its clock reads 0
+        // or a stale value. Following it then would overwrite the time the viewer asked for.
+        const ready = a.readyState >= 1 && !a.seeking && new URL(scene.audio ?? "", window.location.href).href === a.src;
+        if (ready) {
+          if (a.ended || a.currentTime >= duration - 0.03) return finishScene();
+          if (Math.abs(a.currentTime - cur.t) > 1.5 && a.currentTime < 0.3 && cur.t > 0.3) {
+            // The file just became ready at its start although a later time was requested.
+            a.currentTime = cur.t;
+          } else setT(a.currentTime);
+        }
+        if (a.paused && a.readyState >= 2) a.play().catch(playRejected);
       } else {
         let next = cur.t + dt * cur.rate;
         const speak = cur.opts.browserVoice && cur.ttsOk && !cur.muted && "speechSynthesis" in window;
@@ -199,7 +220,7 @@ export function usePlayback(scenes: Scene[], opts: Options = {}): Playback {
     }
     setPlaying(true);
     const a = audioRef.current;
-    if (a && sc?.audio && !cur.audioFailed[sc.id]) a.play().catch(() => setPlaying(false));
+    if (a && sc?.audio && !cur.audioFailed[sc.id]) a.play().catch(playRejected);
   }, []);
 
   const pause = useCallback(() => {
@@ -249,7 +270,7 @@ export function usePlayback(scenes: Scene[], opts: Options = {}): Playback {
       if (autoplay !== undefined) {
         setPlaying(autoplay);
         if (!autoplay) a?.pause();
-        else if (target === cur.index && a && sc?.audio && !cur.audioFailed[sc.id]) a.play().catch(() => setPlaying(false));
+        else if (target === cur.index && a && sc?.audio && !cur.audioFailed[sc.id]) a.play().catch(playRejected);
       }
     },
     [stopSpeech],
