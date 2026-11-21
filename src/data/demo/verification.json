@@ -1,0 +1,75 @@
+{
+ "mode": "manual",
+ "fullyChecked": true,
+ "checkedAt": "2026-11-21",
+ "reviewer": "Build agent, page by page against the PDF",
+ "method": "Inventory written page by page from the PDF text layer; figures read from rendered pages. Machine check: every quote found on its stated page, coverage in both directions, on-screen numbers matched to the inventory, reference list 1-84 continuous.",
+ "quoteChecks": {
+  "total": 222,
+  "matched": 222,
+  "failed": []
+ },
+ "notes": [
+  "224 inventory entries on 11 pages; 2 located by figure region instead of a quote.",
+  "1 marked unclear, 4 external supplements not checked, 0 open.",
+  "78 spoken sentences: 76 with sources, 2 transitions without scientific content.",
+  "20 on-screen numbers matched to their inventory entry."
+ ],
+ "pageStatus": [
+  {
+   "page": 1,
+   "chars": 1529,
+   "status": "ok"
+  },
+  {
+   "page": 2,
+   "chars": 6866,
+   "status": "ok"
+  },
+  {
+   "page": 3,
+   "chars": 3902,
+   "status": "ok"
+  },
+  {
+   "page": 4,
+   "chars": 2309,
+   "status": "ok"
+  },
+  {
+   "page": 5,
+   "chars": 2750,
+   "status": "ok"
+  },
+  {
+   "page": 6,
+   "chars": 7036,
+   "status": "ok"
+  },
+  {
+   "page": 7,
+   "chars": 7434,
+   "status": "ok"
+  },
+  {
+   "page": 8,
+   "chars": 8066,
+   "status": "ok"
+  },
+  {
+   "page": 9,
+   "chars": 8497,
+   "status": "ok"
+  },
+  {
+   "page": 10,
+   "chars": 8162,
+   "status": "ok"
+  },
+  {
+   "page": 11,
+   "chars": 1866,
+   "status": "ok"
+  }
+ ]
+}
