@@ -1,0 +1,14 @@
+§1 First isolation (1869–1919)
+In 1869 Friedrich Miescher isolated a phosphorus-rich substance from the nuclei of white blood cells, which he called nuclein. Phoebus Levene later identified its components: a sugar (deoxyribose), a phosphate group, and four bases — adenine (A), thymine (T), guanine (G) and cytosine (C). Levene proposed the tetranucleotide hypothesis, that the four bases appeared in equal amounts in a simple repeating unit. This proved incorrect, and it made many researchers suspect proteins, not DNA, carried the genes.
+
+§2 Chargaff's rules (1950)
+Erwin Chargaff measured the base composition of DNA from many species. Within a given organism's DNA, the amount of adenine is approximately equal to thymine (%A ≈ %T), and guanine is approximately equal to cytosine (%G ≈ %C). Overall base composition varies between species. These findings contradicted the tetranucleotide hypothesis and hinted that the bases pair, though Chargaff did not propose a structure.
+
+§3 X-ray diffraction evidence (1951–1952)
+At King's College London, Rosalind Franklin and Raymond Gosling produced high-quality X-ray diffraction images of DNA fibres. In May 1952 they recorded Photograph 51, whose X-shaped pattern is characteristic of a helix. Franklin's measurements indicated a regular helix about 2 nm wide, with the phosphate backbone on the outside.
+
+§4 The double-helix model (1953)
+In Cambridge, James Watson and Francis Crick built a model consistent with the X-ray data and Chargaff's rules. Published in Nature on 25 April 1953, it had two antiparallel sugar-phosphate backbones winding into a right-handed double helix, with bases paired inside: A with T by two hydrogen bonds, G with C by three. The helix is about 2 nm in diameter, roughly 10 base pairs per turn, with a rise of about 0.34 nm between bases and 3.4 nm per complete turn. They wrote that the pairing "immediately suggests a possible copying mechanism for the genetic material." They suggested, but did not prove, how DNA is copied.
+
+§5 Confirmation, credit and caveats
+In 1958 Matthew Meselson and Franklin Stahl showed replication is semiconservative: each strand templates a new partner. Franklin's unpublished data and Photo 51 were shown to Watson at the time without her knowledge. Franklin died in 1958; the 1962 Nobel Prize went to Watson, Crick and Maurice Wilkins and, by convention, is not awarded posthumously.

@@ -1,0 +1,16 @@
+{
+  "note": "Small representative eval set. Add real papers/chapters over time. Each question's expected grounding lets us track citation support and honest 'insufficient' behaviour.",
+  "documents": [
+    {
+      "id": "dna_sample",
+      "path": "sample_dna.txt",
+      "questions": [
+        {"q": "What did Chargaff find about the bases?", "expect": "source"},
+        {"q": "How wide is the double helix?", "expect": "source"},
+        {"q": "Who produced the X-ray diffraction image?", "expect": "source"},
+        {"q": "What is the capital of France?", "expect": "insufficient"},
+        {"q": "Explain mitochondrial function in detail", "expect": "insufficient"}
+      ]
+    }
+  ]
+}
