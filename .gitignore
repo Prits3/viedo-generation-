@@ -1,3 +1,4 @@
+# web app (Next.js)
 node_modules/
 .next/
 out/
@@ -6,5 +7,16 @@ next-env.d.ts
 .env*
 !.env.example
 .cache/
+.data/
 test-results/
 public/pdf.worker.min.mjs
+
+# backend (Python)
+.venv/
+__pycache__/
+*.pyc
+storage/
+*.db
+*.db-wal
+*.db-shm
+*.wav

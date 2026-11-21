@@ -1,0 +1,27 @@
+# ---- Core: NONE required ----
+# The core (services, jobs, persistence, content, tutor, tests) runs on the
+# Python standard library alone. `python run_tests.py` and `python cli.py` work
+# with no installs. Everything below enables a provider or the web layer.
+
+# Web/presentation layer (app.py)
+fastapi>=0.115.0
+uvicorn>=0.30.0
+python-multipart>=0.0.9      # file uploads
+pydantic>=2.8.0
+
+# Provider: real model (set MODEL=bedrock). Key via AWS_BEARER_TOKEN_BEDROCK.
+boto3>=1.35.0
+
+# Provider: PDF parsing (lighter fallback)
+pypdf>=5.0.0
+
+# Provider: richer extraction with page refs/tables (set PARSER=docling)
+# docling>=2.0.0             # MIT code; model licences vary
+
+# Provider: local narration audio (set SPEECH=kokoro)
+# kokoro>=0.9.0              # Apache-2.0 weights
+# soundfile>=0.12.0
+# numpy>=1.26.0
+
+# Optional expressive TTS to audition against Kokoro:
+# chatterbox-tts            # check model/licence terms before shipping
