@@ -162,6 +162,28 @@ class BedrockLLM:
         return _extract_json(raw)
 
 
+class AnthropicLLM:
+    """Direct Anthropic API — the same key convention the frontend uses
+    (ANTHROPIC_API_KEY), so one key powers both generation and the tutor."""
+    def __init__(self, model: str):
+        import anthropic  # lazy
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise RuntimeError("ANTHROPIC_API_KEY not set (use a rotated key).")
+        self.client = anthropic.Anthropic()
+        self.model = model
+        self.name = f"anthropic:{model}"
+
+    def complete_text(self, system: str, user: str) -> str:
+        r = self.client.messages.create(
+            model=self.model, max_tokens=1000, system=system,
+            messages=[{"role": "user", "content": user}])
+        return "".join(b.text for b in r.content if getattr(b, "type", "") == "text")
+
+    def complete_json(self, system: str, user: str) -> dict:
+        raw = self.complete_text(system + "\nReply with one JSON object only.", user)
+        return _extract_json(raw)
+
+
 # ============================ Speech ==========================================
 _KOKORO_VOICES = {"explainer": "af_heart", "calm": "bm_george", "spill": "af_bella"}
 

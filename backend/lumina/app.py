@@ -12,7 +12,7 @@ from .config import settings
 from .db import Database
 from .security import authenticate, create_user, AuthError
 from .services import (ResourceService, LessonService, TutorService,
-                       PracticeService, lesson_handlers)
+                       PracticeService, lesson_handlers, answer_adhoc)
 from . import jobs
 
 db = Database(settings.db_path)
@@ -47,6 +47,21 @@ def guard(fn):
 @app.get("/health")
 def health():
     return {"ok": True, "model": settings.model_backend, **settings.provenance()}
+
+
+class AdhocTutorReq(BaseModel):
+    question: str
+    passages: list = []          # [{id, page_ref, passage}] — e.g. a lesson's inventory
+    settings: dict | None = None
+
+
+@app.post("/tutor/adhoc")
+def tutor_adhoc(body: AdhocTutorReq):
+    """Stateless grounded tutor the Next.js player calls via the dev proxy.
+    No account needed: the caller supplies the passages (their own lesson)."""
+    if not body.question.strip():
+        raise HTTPException(400, "question required")
+    return answer_adhoc(settings, body.question, body.passages, body.settings)
 
 
 class NewUser(BaseModel):

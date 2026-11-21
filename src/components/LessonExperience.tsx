@@ -14,6 +14,7 @@ import { SourcePanel } from "./SourcePanel";
 import { CoverageMap } from "./CoverageMap";
 import { DetailSections } from "./DetailSections";
 import { VerificationBadge } from "./VerificationBadge";
+import { TutorPanel } from "./TutorPanel";
 
 interface Entry {
   scene: Scene;
@@ -335,6 +336,8 @@ export function LessonExperience({ lesson, notice }: { lesson: Lesson; notice?: 
                 Keyboard: <kbd>Space</kbd> play/pause · <kbd>←</kbd> <kbd>→</kbd> 5 s · <kbd>N</kbd> <kbd>P</kbd> scene · <kbd>M</kbd> sound · <kbd>C</kbd> captions
               </p>
             </section>
+
+            <TutorPanel lesson={lesson} sceneTitle={scene.title} onOpenSource={openSource} onPause={pb.pause} />
 
             <CoverageMap lesson={lesson} coverage={coverage} onSelect={openSource} />
             <DetailSections lesson={lesson} coverage={coverage} open={openSection} onOpen={setOpenSection} onSource={openSource} onJump={jumpToScene} />

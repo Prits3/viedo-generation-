@@ -8,6 +8,8 @@ from . import impl
 def get_llm(s: Settings):
     if s.model_backend == "bedrock":
         return impl.BedrockLLM(s.bedrock_model_id, s.aws_region)
+    if s.model_backend == "anthropic":
+        return impl.AnthropicLLM(s.anthropic_model)
     return impl.MockLLM()
 
 

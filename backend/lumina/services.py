@@ -271,6 +271,32 @@ class PracticeService:
         return json.loads(row["data_json"]) if row else {}
 
 
+def answer_adhoc(s: Settings, question: str, passages: list, settings_dict: dict | None = None) -> dict:
+    """Stateless grounded tutor over caller-supplied passages — this is what the
+    Next.js player calls through the dev proxy, passing the lesson's inventory.
+    Keeps the frontend's own lesson generation; adds our grounding + citations."""
+    outline = {"concepts": [{"concept_id": p.get("id", f"p{i}"),
+                             "page_ref": p.get("page_ref"),
+                             "passage": p.get("passage", ""),
+                             "key_claims": [], "numbers": []}
+                            for i, p in enumerate(passages or [])]}
+    hits = registry.get_retriever(s).retrieve(outline, question)
+    if not hits:
+        return {"grounding": "insufficient", "citations": [],
+                "answer": "The source doesn't cover that. I can answer from general "
+                          "knowledge if you'd like it clearly labelled."}
+    llm = registry.get_llm(s)
+    sys = ("Answer using ONLY the provided passages. Preserve numbers and caveats; "
+           "never turn a hypothesis into proof. If you go beyond the passages, set "
+           "grounding to 'external' and say so. JSON: {grounding, answer}.")
+    user = (f"TASK:tutor\nSTYLE: {(settings_dict or {}).get('narrator', 'Friendly Expert')}\n"
+            f"PASSAGES: {json.dumps(hits)}\nQUESTION: {question}")
+    ans = llm.complete_json(sys, user)
+    ans["citations"] = [{"id": h["concept_id"], "page_ref": h["page_ref"]} for h in hits]
+    ans.setdefault("grounding", "source")
+    return ans
+
+
 def lesson_handlers(db: Database, s: Settings = default_settings) -> dict:
     """Job-kind -> handler map for the worker."""
     svc = LessonService(db, s)
