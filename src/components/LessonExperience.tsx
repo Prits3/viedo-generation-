@@ -31,6 +31,8 @@ interface Props {
   notice?: React.ReactNode;
   /** Stored lessons: generates one scene again. Resolves to an error text, or null on success. */
   onRegenerate?: (sceneId: string) => Promise<string | null>;
+  /** Extra controls shown inside the player, below the scene list (stored lessons: video export). */
+  playerExtras?: React.ReactNode;
 }
 
 function usePreference(key: string, initial: boolean | null): [boolean | null, (v: boolean) => void] {
@@ -57,7 +59,7 @@ function usePreference(key: string, initial: boolean | null): [boolean | null, (
   return [value, set];
 }
 
-export function LessonExperience({ lesson, notice, onRegenerate }: Props) {
+export function LessonExperience({ lesson, notice, onRegenerate, playerExtras }: Props) {
   const coverage = useMemo(() => analyzeCoverage(lesson), [lesson]);
   const byId = useMemo(() => new Map(lesson.inventory.map((it) => [it.id, it])), [lesson]);
   const playlist = useMemo<Entry[]>(
@@ -405,6 +407,7 @@ export function LessonExperience({ lesson, notice, onRegenerate }: Props) {
                   )}
                 </div>
               )}
+              {playerExtras}
               {!inIntro || introDone ? null : (
                 <button type="button" className="btn btn--ghost watchfull" onClick={watchFull}>
                   Skip to the full paper →

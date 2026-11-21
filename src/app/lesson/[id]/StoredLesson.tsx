@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Lesson } from "@/lib/types";
 import { LessonExperience } from "@/components/LessonExperience";
+import { ExportVideo } from "@/components/ExportVideo";
 
 interface Run {
   step: string;
@@ -104,6 +105,7 @@ export function StoredLesson({ id }: { id: string }) {
     <LessonExperience
       lesson={lesson}
       onRegenerate={regenerate}
+      playerExtras={<ExportVideo key={file.revision} id={id} lesson={lesson} />}
       notice={
         <div className="alert alert--warn notice" role="status" data-lesson-state="stored" data-revision={file.revision}>
           <p>

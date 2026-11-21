@@ -88,6 +88,20 @@ input -> source blocks -> content inventory -> storyboard -> checked scenes -> f
 
 **The robot duck** (`src/components/Duck.tsx`) is one SVG character built from layers (body, wing, head, eye, eyelid, beak, antenna). Actions: enter, look, lean, point, wow, listen. It stands in a lane the scene layout keeps free; when an action names an element, head, eye and wing turn towards that element's real position on screen. The browser check verifies in every scene that it covers no value, caption or source button.
 
+## Export a video
+
+A stored lesson can be exported as an MP4 for TikTok, Reels or Shorts: 1080 x 1920 (or 1920 x 1080), H.264 + AAC, 30 fps, with the narration, large captions, a source label for every sentence ("Source: p. 3"), an "AI-generated" label and an end card that names the source. No model is called.
+
+```bash
+npm run build && npm start                       # the exporter draws the frames with the running app
+node scripts/export-video.mjs <lessonId> [--format vertical|landscape] [--max-seconds N] [--base http://localhost:3000]
+node scripts/check-export.mjs <lessonId> [same options]   # streams, frame count, length, sound and captions on one clock
+```
+
+The result is `.data/lessons/<id>/export/<format>.mp4` with `caption.txt` (post text) beside it; in the app, the player of a stored lesson has **Export video** with progress and download. `--max-seconds` ends the video after the last sentence that fits (file `<format>-<N>s.mp4`), `--from-scene <sceneId>` starts later. Needs ffmpeg and a lesson with recorded narration; a lesson without it is refused instead of exported silent. The bundled example is not in the lesson store and has no export.
+
+How it works: `/lesson/<id>/render` shows the stage alone, built from the same scene components and the same state derivation as the player. The exporter steps that page frame by frame in headless Chromium (several pages in parallel), moves every CSS transition and animation to the frame's time, and pipes a screenshot of each frame into ffmpeg; the sound track is put together from the per-scene recordings at the same scene start times. Text is kept out of the areas the apps cover with their own interface (top 130, bottom 484, left 44, right 140 of 1080 x 1920 pixels; third-party guidance, not an official figure).
+
 ## Confirmed Bedrock capabilities
 
 Checked on 2026-11-21 with the team's key against the AWS documentation ([API keys](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-use.html), [regions](https://docs.aws.amazon.com/bedrock/latest/userguide/models-region-compatibility.html), [API compatibility](https://docs.aws.amazon.com/bedrock/latest/userguide/models-api-compatibility.html), [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html)) and with small live calls.
