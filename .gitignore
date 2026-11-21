@@ -8,3 +8,6 @@ next-env.d.ts
 .cache/
 test-results/
 public/pdf.worker.min.mjs
+
+# Local demo video (too large for git; kept locally)
+public/mp4/*.mp4

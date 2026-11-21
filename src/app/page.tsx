@@ -21,6 +21,10 @@ export default function Home() {
             <strong>Upload a PDF</strong>
             <small>Generate a lesson from your own paper</small>
           </Link>
+          <Link href="/resource-video" className="btn" data-action="resource-video">
+            <strong>Resource to video</strong>
+            <small>Add resources and generate a lesson video</small>
+          </Link>
         </div>
       </section>
       <ul className="features">
