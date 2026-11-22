@@ -9,6 +9,7 @@ Go to **Project configuration → Environment variables**. Scope the variables t
 | Variable | Deploy Previews | Production |
 | --- | --- | --- |
 | `PILOT_STRIPE_TEST_LINK` | Set in `netlify.toml`: official Dashboard sandbox Payment Link on `https://buy.stripe.com` with a `/test_…` path | Leave blank; ignored |
+| `PILOT_PUBLIC_TEST_LINK`, `PILOT_PUBLIC_TEST_PRICE` | Ignored | Set in `netlify.toml` to show the labelled sandbox demo on the public site while live approval is unset. Remove these entries to hide the demo. |
 | `PILOT_STRIPE_LIVE_LINK` | Leave blank; ignored | Required: reviewed Stripe live Payment Link on `https://buy.stripe.com` with one non-test path segment |
 | `PILOT_PRICE` | Set to the sandbox price (€4.99) in `netlify.toml`; update it together with the link. Without a configured price, a labelled test placeholder is shown. | Required: approved one-time total, including currency and applicable taxes/fees; must match Checkout |
 | `PILOT_DELIVERY` | Optional: otherwise a labelled three-business-day example | Required: approved delivery window, including when it starts |
@@ -17,7 +18,7 @@ Go to **Project configuration → Environment variables**. Scope the variables t
 | `PILOT_LIVE_APPROVED` | Leave blank; ignored | Set to `true` **only** after the checklist below is signed off |
 | `LEGAL_NAME`, `LEGAL_ADDRESS`, `LEGAL_EMAIL` | Not required for the test offer | Required: public seller/contact details shown on the offer. Use Builds and Functions scopes so `/imprint` and `/privacy` also show the details at runtime; separate `LEGAL_ADDRESS` lines with `\|`. |
 
-Without a valid link for the current context the section is hidden. In production, missing approval or incomplete offer details also hide it. Branch deploys and unspecified contexts never show it. Only copy the bare Payment Link from the Dashboard; the application intentionally rejects custom domains, query strings and fragments. The URL check verifies format, not Stripe ownership, price type, active status, or actual mode: verify those in the Dashboard.
+Without valid configuration for the current context the section is hidden. Production shows the public sandbox demo only if both public test values are present and live approval is unset. When live approval is `true`, production checks the separate live values and hides the offer if any are missing; it does not fall back to the sandbox. Branch deploys and unspecified contexts never show it. Only copy the bare Payment Link from the Dashboard; the application intentionally rejects custom domains, query strings and fragments. The URL check verifies format, not Stripe ownership, price type, active status, or actual mode: verify those in the Dashboard.
 
 ### Which Stripe keys go where?
 

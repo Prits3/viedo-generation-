@@ -17,7 +17,11 @@ const evidence = resolve(process.env.PILOT_SCREENSHOTS_DIR ?? ".cache/pilot-offe
 const common = Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^(?:PILOT_|LEGAL_|AWS_|BEDROCK_|ANTHROPIC_|CONTEXT$)/i.test(name)));
 const cases = [
   { name: "hidden", context: "production", link: null, env: {} },
-  { name: "preview", context: "deploy-preview", link: testLink, env: { PILOT_STRIPE_TEST_LINK: testLink, ...(testPrice ? { PILOT_PRICE: testPrice } : {}) } },
+  { name: "preview", context: "deploy-preview", link: testLink, test: true, env: { PILOT_STRIPE_TEST_LINK: testLink, ...(testPrice ? { PILOT_PRICE: testPrice } : {}) } },
+  { name: "public-sandbox", context: "production", link: testLink, test: true, env: {
+    PILOT_PUBLIC_TEST_LINK: testLink,
+    PILOT_PUBLIC_TEST_PRICE: testPrice ?? "€5.00 (test price)",
+  } },
   { name: "approved-fixture", context: "production", link: liveLink, env: {
     PILOT_STRIPE_LIVE_LINK: liveLink,
     PILOT_LIVE_APPROVED: "true",
@@ -81,17 +85,18 @@ async function checkPage(browser, base, scenario, screen) {
     const demo = page.locator('[data-action="try-example"]');
     const early = page.getByRole("heading", { name: "Get early access" });
     const card = page.locator("[data-pilot-mode]");
-    const order = page.getByRole("link", { name: "Order a learning video" });
+    const order = page.getByRole("link", { name: scenario.test ? "Try the Stripe test checkout" : "Order a learning video" });
     await expect(demo).toBeVisible();
     await expect(early).toBeVisible();
     if (scenario.link) {
       await expect(card.getByText("LearnLayla – Your PDF, Explained", { exact: true })).toBeVisible();
       await expect(card.getByText(/short narrated MP4/)).toBeVisible();
       await expect(card.getByText("One-time purchase, no subscription.")).toBeVisible();
-      const testMode = scenario.context === "deploy-preview";
+      const testMode = Boolean(scenario.test);
       await expect(card).toHaveAttribute("data-pilot-mode", testMode ? "test" : "live");
       if (testMode) {
         await expect(card.getByText(/Test checkout only\. No real payment, PDF submission or delivery/)).toBeVisible();
+        await expect(card.getByText(/Use test card details only/)).toBeVisible();
         await expect(card.getByText(testPrice ?? "€5.00 (test price)", { exact: true })).toBeVisible();
         await expect(card.getByText(/3 business days.*test estimate/)).toBeVisible();
         await expect(card.getByText(/verify payment, then email PDF submission instructions/)).toBeVisible();
@@ -124,6 +129,7 @@ async function checkPage(browser, base, scenario, screen) {
     } else {
       await expect(card).toHaveCount(0);
       await expect(order).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "Try the Stripe test checkout" })).toHaveCount(0);
       await early.scrollIntoViewIfNeeded();
       await page.locator(".early").screenshot({ path: resolve(evidence, `${scenario.name}-${screen.name}.png`) });
     }

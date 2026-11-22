@@ -46,6 +46,23 @@ test("production uses the reviewed live link, never the test variable or placeho
   assert.equal(pilotOffer({ ...approved, PILOT_LIVE_APPROVED: "1" }, true), null);
 });
 
+test("production exposes only an explicitly configured sandbox demo before live approval", () => {
+  const configured = { ...approved, PILOT_LIVE_APPROVED: undefined, PILOT_PUBLIC_TEST_LINK: sandbox, PILOT_PUBLIC_TEST_PRICE: "€4.99 (test price)" };
+  const demo = pilotOffer(configured, false);
+  assert.equal(demo.mode, "test");
+  assert.equal(demo.checkoutUrl, sandbox);
+  assert.equal(demo.price, "€4.99 (test price)");
+  assert.match(demo.delivery, /test estimate/);
+  assert.equal(demo.orderInfoUrl, null);
+  assert.equal(pilotOffer({ ...configured, PILOT_PUBLIC_TEST_LINK: live }, false), null);
+  assert.equal(pilotOffer({ ...configured, PILOT_PUBLIC_TEST_PRICE: undefined }, false), null);
+  assert.equal(pilotOffer({ ...configured, PILOT_PUBLIC_TEST_LINK: undefined }, false), null);
+  assert.equal(pilotOffer({ ...configured, CONTEXT: "deploy-preview", PILOT_STRIPE_TEST_LINK: undefined }, false), null);
+  assert.equal(pilotOffer({ ...configured, PILOT_LIVE_APPROVED: "true" }, false), null);
+  assert.equal(pilotOffer({ ...configured, PILOT_LIVE_APPROVED: "true", PILOT_STRIPE_LIVE_LINK: sandbox }, true), null);
+  assert.equal(pilotOffer({ ...configured, PILOT_LIVE_APPROVED: "true" }, true).mode, "live");
+});
+
 test("rejects non-Stripe, insecure, and noncanonical payment destinations", () => {
   const badLinks = [
     "http://buy.stripe.com/test_Fake", "https://buy.stripe.com.evil.example/test_Fake",

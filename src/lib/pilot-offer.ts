@@ -42,13 +42,16 @@ export function pilotOffer(env: NodeJS.ProcessEnv, operatorConfigured: boolean):
   const delivery = text(env.PILOT_DELIVERY, 180);
   const pdfHandoff = text(env.PILOT_PDF_HANDOFF, 320);
 
-  if (env.CONTEXT === "deploy-preview") {
-    const checkoutUrl = paymentLink(env.PILOT_STRIPE_TEST_LINK, "test");
-    return checkoutUrl ? {
+  const preview = env.CONTEXT === "deploy-preview";
+  const publicTest = env.CONTEXT === "production" && env.PILOT_LIVE_APPROVED !== "true";
+  if (preview || publicTest) {
+    const checkoutUrl = paymentLink(preview ? env.PILOT_STRIPE_TEST_LINK : env.PILOT_PUBLIC_TEST_LINK, "test");
+    const testPrice = preview ? price ?? defaults.price : text(env.PILOT_PUBLIC_TEST_PRICE, 80);
+    return checkoutUrl && testPrice ? {
       mode: "test", checkoutUrl,
-      price: price ?? defaults.price,
-      delivery: delivery ?? defaults.delivery,
-      pdfHandoff: pdfHandoff ?? defaults.pdfHandoff,
+      price: testPrice,
+      delivery: preview ? delivery ?? defaults.delivery : defaults.delivery,
+      pdfHandoff: preview ? pdfHandoff ?? defaults.pdfHandoff : defaults.pdfHandoff,
       orderInfoUrl: null,
     } : null;
   }

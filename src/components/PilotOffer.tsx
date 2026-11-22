@@ -13,7 +13,7 @@ export function PilotOffer() {
         <h2 id="pilot-title">Turn your PDF into a learning video</h2>
         <p>Make a long PDF easier to learn from. We turn one PDF you provide into a short narrated MP4 that explains the key points and shows where they come from in your document.</p>
         <p className="pilot__purchase">One-time purchase, no subscription.</p>
-        {offer.mode === "test" && <p className="pilot__test">Test checkout only. No real payment, PDF submission or delivery.</p>}
+        {offer.mode === "test" && <p className="pilot__test">Test checkout only. No real payment, PDF submission or delivery. Use test card details only.</p>}
       </div>
       <dl className="pilot__details">
         <div><dt>One-time price</dt><dd>{offer.price}</dd></div>
@@ -28,7 +28,7 @@ export function PilotOffer() {
       )}
       <div className="pilot__checkout">
         <a className="btn btn--primary" href={offer.checkoutUrl} referrerPolicy="no-referrer" data-action="pilot-order" aria-describedby="pilot-checkout-note">
-          Order a learning video
+          {offer.mode === "test" ? "Try the Stripe test checkout" : "Order a learning video"}
         </a>
         <p id="pilot-checkout-note">{offer.mode === "test" ? "Opens Stripe’s test checkout." : "Opens Stripe’s checkout. No PDF upload at checkout."}</p>
       </div>
