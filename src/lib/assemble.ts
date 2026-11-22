@@ -9,6 +9,7 @@ import { canon } from "./text.ts";
 import { analyzeCoverage, sceneRefs } from "./coverage.ts";
 import { TYPE_PLURAL, locLong } from "./labels.ts";
 import { digits } from "./check.ts";
+import { prepareVideoScene } from "./comparison-evidence.ts";
 
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
 
@@ -169,7 +170,7 @@ export function sceneFromDraft(d: SceneDraft, id: string, ctx: SceneContext): Sc
     const lo = Math.min(0, ...rows.map((r) => r.from));
     const hi = Math.max(0, ...rows.map((r) => r.to));
     const span = hi - lo || 1;
-    return finish(
+    const comparison = finish(
       {
         ...base,
         cues,
@@ -188,6 +189,7 @@ export function sceneFromDraft(d: SceneDraft, id: string, ctx: SceneContext): Sc
       },
       [...rows.map((r) => r.key), "basis", "axis"],
     );
+    return prepareVideoScene(comparison, ctx.byId);
   }
 
   if (cards.length >= 2) {

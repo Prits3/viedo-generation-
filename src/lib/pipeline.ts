@@ -22,7 +22,7 @@ import { autoVerification, chaptersFromStoryboard, inventoryFromDraft, regroup, 
 import { checkScene } from "./check.ts";
 import { sceneRefs } from "./coverage.ts";
 import { timeScene, type SceneTiming } from "./timing.ts";
-import { narrateScene, voiceSetup } from "./voice.ts";
+import { NARRATION_SPACING, narrateScene, voiceSetup } from "./voice.ts";
 import { cropPng, locateInText, pageLines, renderPdfPage } from "./figures.ts";
 import { LESSON_FORMAT, LESSON_VERSION, runTotals, type LessonFile } from "./lesson-file.ts";
 import { has, loadJob, loadLesson, newId, pathIn, readBytes, readJson, saveJob, saveLesson, sha8, writeBytes, writeJson, type Job, type Stage } from "./store.ts";
@@ -70,14 +70,14 @@ function entriesFor(scene: Scene, inventory: InventoryItem[]): InventoryItem[] {
   return pool.slice(0, 60);
 }
 
-async function narrate(id: string, scene: Scene, signal?: AbortSignal): Promise<AudioMeta | null> {
+async function narrate(id: string, scene: Scene, mode: LessonMode, signal?: AbortSignal): Promise<AudioMeta | null> {
   const setup = voiceSetup();
   if (!setup) return null;
   const sentences = scene.cues.map((c) => c.say ?? c.text);
-  const hash = sha8(sentences.join("\n"));
+  const hash = sha8(mode === "short" ? JSON.stringify([setup.name, NARRATION_SPACING.short, sentences]) : sentences.join("\n"));
   const meta = readJson<AudioMeta>(id, `audio/${scene.id}.json`);
   if (meta && meta.hash === hash && has(id, meta.file)) return meta;
-  const { file, timing } = await narrateScene(setup, sentences, pathIn(id, `audio/${scene.id}-${hash}`), signal);
+  const { file, timing } = await narrateScene(setup, sentences, pathIn(id, `audio/${scene.id}-${hash}`), signal, mode);
   const out: AudioMeta = { hash, file: `audio/${scene.id}-${hash}${file.endsWith(".mp3") ? ".mp3" : ".wav"}`, timing };
   writeJson(id, `audio/${scene.id}.json`, out);
   return out;
@@ -455,7 +455,7 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
         for (let sc = queue.shift(); sc; sc = queue.shift()) {
           stop();
           try {
-            const meta = await narrate(id, sc, signal);
+            const meta = await narrate(id, sc, short ? "short" : "full", signal);
             if (meta) audio.set(sc.id, meta);
           } catch (err) {
             if (signal?.aborted) throw err;
@@ -475,7 +475,7 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
           scenes = checked.intro.scenes;
           // Scenes that lost a sentence are recorded again; the others are found by their hash.
           for (const sc of scenes) {
-            const meta = await narrate(id, sc, signal).catch(() => null);
+            const meta = await narrate(id, sc, "short", signal).catch(() => null);
             if (meta) audio.set(sc.id, meta);
             else audio.delete(sc.id);
           }
@@ -538,7 +538,7 @@ export async function regenerateScene(id: string, sceneId: string, signal?: Abor
 
   let meta: AudioMeta | null = null;
   try {
-    meta = await narrate(id, fresh, signal);
+    meta = await narrate(id, fresh, lesson.meta.mode ?? "full", signal);
   } catch {
     /* no recording for this scene: browser voice or captions */
   }

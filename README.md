@@ -135,6 +135,19 @@ The result is `.data/lessons/<id>/export/<format>.mp4` with `caption.txt` (post 
 
 How it works: `/lesson/<id>/render` shows the stage alone, built from the same scene components and the same state derivation as the player. The exporter steps that page frame by frame in headless Chromium (several pages in parallel), moves every CSS transition and animation to the frame's time, and pipes a screenshot of each frame into ffmpeg; the sound track is put together from the per-scene recordings at the same scene start times. Text is kept out of the areas the apps cover with their own interface (top 130, bottom 484, left 44, right 140 of 1080 x 1920 pixels; third-party guidance, not an official figure).
 
+### Review a video before publishing it
+
+```bash
+node scripts/video-quality.mjs <lessonId>
+node scripts/video-quality.mjs <lessonId> --base http://127.0.0.1:3000 --frames-dir .data/review-v1
+```
+
+The first command is offline and reads `lesson.json` from the lesson store (set `LESSON_STORE_DIR` to select another store). The second also samples real browser frames on the running local app, saves PNGs in a new directory, and adds layout findings to the same JSON report. Use `--format landscape` for a separate 16:9 review. Exit codes: `0` no blocking findings, `1` findings to fix, `2` tool/input error. Warnings are editing suggestions, not quality scores; frames are sampled, not exhaustive. No model or new dependency is required.
+
+For an agent: read `findings[]` in `paperscenes.video-quality@1`, prioritise errors, and improve only the named scene using its cited source. Compare the same frames from two revisions, then export and run `check-export` for real audio/video synchronisation. Review one pass on a phone: can a viewer read the main claim and say what was compared, by how much, and under which conditions? Keep only changes that improve the answer without adding claims.
+
+The picture must carry evidence, not duplicate the transcript. Two cited scalars get large portrait tiles; ranges keep the shared axis. The assembler validates plotted endpoints and units against matched inventory quotes and falls back to cited text cards when it cannot substantiate the plot. The export renderer also applies that fallback when rendering older lesson files; already generated MP4s are unchanged until re-exported. The check is conservative: documents with ambiguous units, complex numeric notation, or values only visible in an image may need a source figure or editorial review rather than a generated plot. It does not replace reading the cited passages.
+
 ## Confirmed Bedrock capabilities
 
 Checked on 2026-11-21 with the team's key against the AWS documentation ([API keys](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-use.html), [regions](https://docs.aws.amazon.com/bedrock/latest/userguide/models-region-compatibility.html), [API compatibility](https://docs.aws.amazon.com/bedrock/latest/userguide/models-api-compatibility.html), [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html)) and with small live calls.

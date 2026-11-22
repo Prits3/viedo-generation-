@@ -12,9 +12,10 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import type { SceneTiming } from "./timing.ts";
 
-const LEAD_IN = 0.45; // seconds of silence before the first sentence
-const GAP = 0.32; // between sentences
-const TAIL = 0.8; // after the last sentence, lets the picture settle
+export const NARRATION_SPACING = {
+  full: { lead: 0.45, gap: 0.32, tail: 0.8 },
+  short: { lead: 0.2, gap: 0.28, tail: 0.6 },
+};
 const LENGTH_SCALE = "0.93";
 
 export interface VoiceSetup {
@@ -97,7 +98,8 @@ function run(cmd: string, args: string[], input?: string, signal?: AbortSignal):
  * starts and ends. `outBase` is the path without extension; the result is .mp3 when ffmpeg is
  * available, otherwise .wav.
  */
-export async function narrateScene(setup: VoiceSetup, sentences: string[], outBase: string, signal?: AbortSignal): Promise<{ file: string; timing: SceneTiming }> {
+export async function narrateScene(setup: VoiceSetup, sentences: string[], outBase: string, signal?: AbortSignal, mode: keyof typeof NARRATION_SPACING = "full"): Promise<{ file: string; timing: SceneTiming }> {
+  const { lead, gap, tail } = NARRATION_SPACING[mode];
   const tmp = mkdtempSync(/*turbopackIgnore: true*/ join(/*turbopackIgnore: true*/ tmpdir(), "narr-"));
   try {
     const lines = sentences.map((text, k) => JSON.stringify({ text: text.replace(/\s+/g, " ").trim(), output_file: join(/*turbopackIgnore: true*/ tmp, `${k}.wav`) })).join("\n") + "\n";
@@ -106,22 +108,22 @@ export async function narrateScene(setup: VoiceSetup, sentences: string[], outBa
     const parts: Buffer[] = [];
     const cues: SceneTiming["cues"] = [];
     const silence = (sec: number) => Buffer.alloc(Math.round(sec * rate) * 2);
-    let at = LEAD_IN;
+    let at = lead;
     sentences.forEach((_, k) => {
       const w = readWav(join(/*turbopackIgnore: true*/ tmp, `${k}.wav`));
       rate = w.rate;
-      if (k === 0) parts.push(silence(LEAD_IN));
+      if (k === 0) parts.push(silence(lead));
       const dur = w.data.length / 2 / rate;
       cues.push({ start: +at.toFixed(2), end: +(at + dur).toFixed(2) });
       parts.push(w.data);
       at += dur;
       if (k < sentences.length - 1) {
-        parts.push(silence(GAP));
-        at += GAP;
+        parts.push(silence(gap));
+        at += gap;
       }
     });
-    parts.push(silence(TAIL));
-    at += TAIL;
+    parts.push(silence(tail));
+    at += tail;
     mkdirSync(/*turbopackIgnore: true*/ dirname(outBase), { recursive: true });
     const wav = wavBytes(Buffer.concat(parts), rate);
     const timing = { duration: +at.toFixed(2), cues };
