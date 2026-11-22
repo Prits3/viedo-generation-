@@ -5,12 +5,14 @@ export default function Home() {
   return (
     <main className="home">
       <Link href="/" className="brand">
-        <i aria-hidden="true" /> PaperScenes
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/learnlayla-logo.png" alt="" className="brand__logo" width={36} height={36} />
+        LearnLayla
       </Link>
       <section className="hero">
         <h1>Watch the paper. Check every claim.</h1>
         <p className="lead">
-          PaperScenes turns a research paper into a short narrated, visual lesson. You set the pace, the sound, the captions and the amount of motion. Every statement links straight to its
+          LearnLayla turns a research paper into a short narrated, visual lesson. You set the pace, the sound, the captions and the amount of motion. Every statement links straight to its
           passage in the original PDF.
         </p>
         <div className="hero__actions">
@@ -51,7 +53,7 @@ export default function Home() {
         <span>Schwaab et al. (2021). The role of urban trees in reducing land surface temperatures in European cities. Nature Communications 12:6763.</span>
         <small>Open access, CC BY 4.0. The example runs from checked local data: no model call, no API key.</small>
       </div>
-      <Waitlist source="home" heading="Get early access" blurb="We’re just getting started. Leave your email and we’ll let you know as new features land." />
+      <Waitlist source="landing_page" heading="Get early access" blurb="We’re just getting started. Leave your email and we’ll let you know when your access is ready." />
     </main>
   );
 }

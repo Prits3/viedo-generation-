@@ -1,83 +1,94 @@
 "use client";
 
-// Email waitlist capture with a live "N joined" counter.
-// Posts to /api/signup. Degrades to a clear message if the database isn't connected yet.
+// Early-access waitlist form. Inserts directly into Supabase `public.waitlist`
+// from the browser using the publishable (anon) key, relying on the table's
+// pre-configured Row Level Security insert policy. No numbers are read back or shown.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
-type Status = "idle" | "submitting" | "done" | "error";
+type Status = "idle" | "submitting" | "done" | "error" | "duplicate";
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+const SUCCESS_MSG = "You’re on the list. We’ll let you know when your LearnLayla access is ready.";
+const DUPLICATE_MSG = "You’re already on the list.";
+const ERROR_MSG = "Something went wrong. Please try again.";
 
 export function Waitlist({
-  source = "waitlist",
-  heading = "Join the waitlist",
-  blurb = "Be the first to turn your resources into lessons. We’ll email you when it’s ready.",
+  source = "landing_page",
+  heading = "Get early access",
+  blurb = "Be the first to turn your resources into lessons. Join the early-access list.",
 }: {
   source?: string;
   heading?: string;
   blurb?: string;
 }) {
   const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
-  const [message, setMessage] = useState<string | null>(null);
-  const [count, setCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/signup")
-      .then((r) => r.json())
-      .then((d) => {
-        if (active && typeof d.count === "number") setCount(d.count);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (status === "submitting") return;
+
+    const normalised = email.trim().toLowerCase();
+    if (!EMAIL_RE.test(normalised) || normalised.length > 254) {
+      setFieldError("Please enter a valid email address.");
+      return;
+    }
+    setFieldError(null);
     setStatus("submitting");
-    setMessage(null);
-    try {
-      const res = await fetch("/api/signup", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, source }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.ok) {
-        if (typeof data.count === "number") setCount(data.count);
-        setStatus("done");
-        setEmail("");
-      } else {
-        setStatus("error");
-        setMessage(data.message ?? "Something went wrong. Please try again.");
-      }
-    } catch {
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
       setStatus("error");
-      setMessage("Network error. Please try again.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("waitlist")
+      .insert({ email: normalised, source, marketing_consent: consent });
+
+    if (!error) {
+      setStatus("done");
+      setEmail("");
+      setConsent(false);
+    } else if (error.code === "23505") {
+      // unique_violation → email already present
+      setStatus("duplicate");
+    } else {
+      setStatus("error");
     }
   }
+
+  if (status === "done" || status === "duplicate") {
+    return (
+      <section className="waitlist" aria-labelledby="waitlist-heading">
+        <div className="waitlist__text">
+          <h2 id="waitlist-heading">{heading}</h2>
+        </div>
+        <p className="waitlist__done" role="status">
+          ✓ {status === "done" ? SUCCESS_MSG : DUPLICATE_MSG}
+        </p>
+      </section>
+    );
+  }
+
+  const submitting = status === "submitting";
 
   return (
     <section className="waitlist" aria-labelledby="waitlist-heading">
       <div className="waitlist__text">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/learnlayla-logo.png" alt="LearnLayla" className="waitlist__mascot" width={64} height={64} />
         <h2 id="waitlist-heading">{heading}</h2>
         <p>{blurb}</p>
-        {count !== null && count > 0 && (
-          <p className="waitlist__count" aria-live="polite">
-            <strong>{count.toLocaleString("en-US")}</strong> {count === 1 ? "person has" : "people have"} joined
-          </p>
-        )}
       </div>
 
-      {status === "done" ? (
-        <p className="waitlist__done" role="status">
-          ✓ You’re on the list. We’ll be in touch.
-        </p>
-      ) : (
-        <form className="waitlist__form" onSubmit={submit}>
+      <form className="waitlist__form" onSubmit={submit} noValidate>
+        <div className="waitlist__row">
           <label className="sr-only" htmlFor="waitlist-email">
             Email address
           </label>
@@ -90,25 +101,45 @@ export function Waitlist({
             required
             placeholder="you@email.com"
             value={email}
-            aria-invalid={status === "error" ? true : undefined}
-            aria-describedby={message ? "waitlist-msg" : undefined}
+            aria-invalid={fieldError ? true : undefined}
+            aria-describedby={fieldError ? "waitlist-error" : "waitlist-hint"}
             onChange={(e) => {
               setEmail(e.target.value);
+              if (fieldError) setFieldError(null);
               if (status === "error") setStatus("idle");
             }}
-            disabled={status === "submitting"}
+            disabled={submitting}
           />
-          <button type="submit" className="btn btn--primary" disabled={status === "submitting"}>
-            {status === "submitting" ? "Joining…" : "Join waitlist"}
+          <button type="submit" className="btn btn--primary" disabled={submitting}>
+            {submitting ? "Joining…" : "Join early access"}
           </button>
-        </form>
-      )}
+        </div>
 
-      {message && (
-        <p className="waitlist__error" id="waitlist-msg" role="alert">
-          {message}
+        <label className="waitlist__consent">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            disabled={submitting}
+          />
+          <span>Send me occasional LearnLayla updates.</span>
+        </label>
+
+        <p className="waitlist__hint" id="waitlist-hint">
+          Early-access updates only. No spam.
         </p>
-      )}
+
+        {fieldError && (
+          <p className="waitlist__error" id="waitlist-error" role="alert">
+            {fieldError}
+          </p>
+        )}
+        {status === "error" && (
+          <p className="waitlist__error" role="alert">
+            {ERROR_MSG}
+          </p>
+        )}
+      </form>
     </section>
   );
 }
