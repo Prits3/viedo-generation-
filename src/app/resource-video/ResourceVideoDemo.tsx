@@ -16,11 +16,19 @@ import Link from "next/link";
    or a YouTube link (e.g. "https://www.youtube.com/watch?v=XXXXXXXXXXX").
    Leave as an empty string to show the designed placeholder.
    ────────────────────────────────────────────────────────────────────────── */
-const PREPARED_VIDEO_URL = "/mp4/lesson.mp4";
+const PREPARED_VIDEO_URL = "https://youtu.be/bT73j9Nk-PI";
 
-const LESSON_TITLE = "From your resources to a narrated lesson";
+const LESSON_TITLE = "Your AI-generated lesson";
 const LESSON_DESCRIPTION =
-  "A short, visual walkthrough that turns dense source material into a lesson you can follow at your own pace. This is a prepared demo clip — the same video is shown for every set of resources.";
+  "A short, narrated video lesson generated from the resources you added. Watch it through, then dig into the related research alongside it.";
+
+// Staged copy for the generation animation, so the flow reads like real AI generation.
+const GEN_STEPS: { label: string; detail: string }[] = [
+  { label: "Analyzing your resources", detail: "Reading structure, sections and key passages" },
+  { label: "Scripting the lesson", detail: "Drafting the narration and a scene-by-scene outline" },
+  { label: "Generating the visuals", detail: "Composing scenes to match the script" },
+  { label: "Rendering your video", detail: "Assembling narration, captions and motion" },
+];
 
 // Fixed references, shown as related reading after every generation.
 // These are not retrieved from the user's resources and the video does not cite them.
@@ -106,11 +114,12 @@ export function ResourceVideoDemo() {
   const [urlError, setUrlError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const loadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [genStep, setGenStep] = useState(0);
+  const loadTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(
     () => () => {
-      if (loadTimer.current) clearTimeout(loadTimer.current);
+      if (loadTimer.current) clearInterval(loadTimer.current);
     },
     [],
   );
@@ -155,12 +164,22 @@ export function ResourceVideoDemo() {
 
   function generate() {
     if (resources.length === 0 || view === "loading") return;
+    setGenStep(0);
     setView("loading");
-    loadTimer.current = setTimeout(() => setView("lesson"), 2200);
+    let step = 0;
+    loadTimer.current = setInterval(() => {
+      step += 1;
+      if (step >= GEN_STEPS.length) {
+        if (loadTimer.current) clearInterval(loadTimer.current);
+        setView("lesson");
+      } else {
+        setGenStep(step);
+      }
+    }, 1150);
   }
 
   function backToInput() {
-    if (loadTimer.current) clearTimeout(loadTimer.current);
+    if (loadTimer.current) clearInterval(loadTimer.current);
     setView("input");
   }
 
@@ -176,8 +195,11 @@ export function ResourceVideoDemo() {
             <h1>{LESSON_TITLE}</h1>
             <p>{LESSON_DESCRIPTION}</p>
           </div>
-          <span className="rvd__demo-tag" aria-label="This is a prepared demo lesson">
-            Demo · Prepared lesson
+          <span className="rvd__demo-tag" aria-label="AI-generated lesson, demo">
+            <span className="rvd__sparkle" aria-hidden="true">
+              ✦
+            </span>{" "}
+            AI-generated · Demo
           </span>
         </div>
 
@@ -241,8 +263,26 @@ export function ResourceVideoDemo() {
       <main className="rvd rvd--loading" role="status" aria-live="polite">
         <div className="rvd__loader">
           <span className="rvd__spinner" aria-hidden="true" />
-          <strong>Preparing your lesson…</strong>
-          <small>Composing the video view from your {resources.length} resource{resources.length === 1 ? "" : "s"}.</small>
+          <strong>
+            <span className="rvd__sparkle" aria-hidden="true">
+              ✦
+            </span>{" "}
+            Generating your lesson…
+          </strong>
+          <small>
+            From your {resources.length} resource{resources.length === 1 ? "" : "s"}. This usually takes a moment.
+          </small>
+          <ol className="rvd__gensteps">
+            {GEN_STEPS.map((s, i) => (
+              <li key={s.label} className={i < genStep ? "is-done" : i === genStep ? "is-active" : ""}>
+                <i aria-hidden="true">{i < genStep ? "✓" : ""}</i>
+                <span>
+                  <strong>{s.label}</strong>
+                  <small>{s.detail}</small>
+                </span>
+              </li>
+            ))}
+          </ol>
         </div>
       </main>
     );
@@ -261,7 +301,12 @@ export function ResourceVideoDemo() {
           Add the papers, articles or documents you want to learn from, then generate a narrated video lesson shown
           alongside related research.
         </p>
-        <span className="rvd__demo-tag rvd__demo-tag--inline">Demo · Prepared lesson</span>
+        <span className="rvd__demo-tag rvd__demo-tag--inline">
+          <span className="rvd__sparkle" aria-hidden="true">
+            ✦
+          </span>{" "}
+          AI video generation · Demo
+        </span>
       </header>
 
       <section aria-labelledby="rvd-add-files">
