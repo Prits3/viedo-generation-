@@ -120,6 +120,16 @@ kbd { font: 12px/1 ui-monospace, Menlo, Consolas, monospace; background: var(--s
 .early .early__error { flex-basis: 100%; color: var(--warm); }
 .early .early__note { flex-basis: 100%; font-size: 0.85rem; color: var(--ink-3); }
 
+.pilot { margin-top: 32px; display: grid; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; overflow-wrap: anywhere; }
+.pilot h2 { font-size: 1.25rem; margin-bottom: 4px; text-wrap: balance; }
+.pilot p, .pilot dd { color: var(--ink-2); }
+.pilot .pilot__test { color: var(--warn); font-weight: 600; margin-top: 8px; }
+.pilot__details { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px 24px; }
+.pilot dt { font-weight: 700; }
+.pilot dd { margin: 0; }
+.pilot__checkout { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.pilot__checkout p, .pilot__info { font-size: 0.875rem; }
+
 /* ── lesson layout ── */
 .lesson { max-width: 1500px; margin: 0 auto; padding: 16px 16px 80px; }
 .lesson__head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 18px; margin-bottom: 14px; }

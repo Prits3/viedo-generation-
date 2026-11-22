@@ -6,6 +6,10 @@
 [build.environment]
   NODE_VERSION = "22"
 
+# Set pilot variables in Netlify's UI with contextual Builds values, not here.
+# Next prerenders the homepage during this build using Netlify's CONTEXT.
+# See docs/PILOT-ORDERS.md for the separate test and live settings.
+
 # The example videos are larger than a function response may be, so they are served as static
 # files copied to public/showcase/ at build time (scripts/copy-showcase-videos.mjs).
 [[redirects]]

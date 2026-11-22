@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Library } from "@/components/Library";
 import { EarlyAccess } from "@/components/EarlyAccess";
+import { PilotOffer } from "@/components/PilotOffer";
 import { DuckFigure } from "@/components/Duck";
 import { BRAND, REPO_URL } from "@/lib/brand";
 
@@ -64,6 +65,7 @@ export default function Home() {
         </li>
       </ul>
       <Library heading="Shorts and lessons" />
+      <PilotOffer />
       <EarlyAccess />
       <section className="repo" aria-labelledby="repo-title">
         <div>
