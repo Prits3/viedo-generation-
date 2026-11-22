@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Library } from "@/components/Library";
 import { EarlyAccess } from "@/components/EarlyAccess";
 import { LaylaFlight } from "@/components/LaylaFlight";
+import { LandingShowreel } from "@/components/LandingShowreel";
 import { BRAND, REPO_URL } from "@/lib/brand";
 import "./landing.css";
 
@@ -34,6 +35,7 @@ export default function Home() {
         </div>
         <LaylaFlight />
       </section>
+      <LandingShowreel />
       <ul className="features">
         <li>
           <strong>One minute first</strong>

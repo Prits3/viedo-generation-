@@ -6,9 +6,21 @@ import { DuckFigure } from "./Duck";
 
 export function LaylaFlight() {
   const frame = useRef<HTMLElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [paused, setPaused] = useState(false);
   const [offscreen, setOffscreen] = useState(false);
   const [pastStage, setPastStage] = useState(false);
+  const [boost, setBoost] = useState(false);
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => {
+    if (typeof CSSAnimation === "undefined") return;
+    frame.current?.getAnimations({ subtree: true }).forEach((track) => {
+      if (track instanceof CSSAnimation && ["layla-lap", "layla-bank", "layla-wake"].includes(track.animationName)) {
+        track.updatePlaybackRate(boost ? 2.4 : 1);
+      }
+    });
+  }, [boost]);
 
   useEffect(() => {
     if (!frame.current || typeof IntersectionObserver === "undefined") return;
@@ -23,13 +35,22 @@ export function LaylaFlight() {
   }, []);
 
   return (
-    <figure ref={frame} className="cinema-frame" data-flight-paused={paused} data-flight-offscreen={offscreen}>
+    <figure ref={frame} className="cinema-frame" data-flight-paused={paused} data-flight-offscreen={offscreen} data-flight-boost={boost}>
       <div className="cinema-frame__art" aria-hidden="true" />
       <div className="layla-light" aria-hidden="true" />
       <span className="cinema-frame__tag"><span aria-hidden="true">✦</span> Layla’s flight deck</span>
-      <button type="button" className="layla-motion" onClick={() => setPaused((value) => !value)}>
-        {paused ? "Resume motion" : "Pause motion"}
-      </button>
+      <div className="layla-controls">
+        <button type="button" className="layla-motion" onClick={() => {
+          clearTimeout(timer.current);
+          setBoost(false);
+          setPaused((value) => !value);
+        }}>{paused ? "Resume motion" : "Pause motion"}</button>
+        <button type="button" className="layla-turbo" disabled={paused} onClick={() => {
+          clearTimeout(timer.current);
+          setBoost(true);
+          timer.current = setTimeout(() => setBoost(false), 2500);
+        }}><span aria-hidden="true">✦ </span>Turbo</button>
+      </div>
 
       <div className="layla-airspace" aria-hidden="true">
         <svg className="layla-route" viewBox="0 0 400 260" preserveAspectRatio="none">

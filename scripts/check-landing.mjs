@@ -53,6 +53,9 @@ try {
     if (reducedMotion === 'reduce') {
       assert.deepEqual(animations, []);
       assert.equal(await page.getByRole('button', { name: 'Pause motion' }).isVisible(), false);
+      assert.equal(await page.getByRole('button', { name: 'Turbo', exact: true }).isVisible(), false);
+      await page.getByRole('button', { name: 'Source' }).click();
+      assert.deepEqual(await page.locator('#showreel-view').evaluate((el) => el.getAnimations({ subtree: true }).map((a) => a.animationName)), []);
     }
     else {
       assert.ok(animations.includes('layla-lap'), `${label}: mascot flight missing`);
@@ -105,6 +108,11 @@ try {
   assert.equal(await location(), hold);
   await desktop.page.getByRole('button', { name: 'Resume motion' }).click();
   await desktop.page.waitForFunction((initial) => getComputedStyle(document.querySelector('[data-flight-pilot]')).transform !== initial, hold);
+  await desktop.page.getByRole('button', { name: 'Turbo', exact: true }).click();
+  const speed = (rate) => desktop.page.waitForFunction((expected) => document.querySelector('[data-flight-pilot]').getAnimations().some((a) => a.playbackRate === expected), rate, { timeout: 6000 });
+  await speed(2.4);
+  await desktop.page.screenshot({ path: join(out, 'desktop-turbo.png'), scale: 'css' });
+  await speed(1);
   await desktop.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const dock = desktop.page.locator('[data-flight-dock]');
   await dock.waitFor();
@@ -117,18 +125,57 @@ try {
   const reduced = await open('reduced', 390, 844, 'reduce');
   await reduced.page.close();
   const { page, input, button } = await open('mobile', 390, 844);
+  let trailerRequests = 0;
+  page.on('request', (req) => { if (req.url() === `${base}/learnlayla-trailer.mp4`) trailerRequests++; });
+  assert.equal(await page.locator('.showreel video').count(), 0, 'Video must not load on the initial page');
+  await page.getByRole('heading', { name: 'A paper worth unpacking' }).waitFor();
+  const lesson = page.getByRole('button', { name: 'Lesson', exact: true });
+  await lesson.focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await lesson.getAttribute('aria-pressed'), 'true');
+  await page.getByRole('heading', { name: 'Same question, two climates' }).waitFor();
+  const source = page.getByRole('button', { name: 'Source', exact: true });
+  await source.click();
+  assert.equal(await source.getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.getByRole('link', { name: /Read page 6/ }).getAttribute('href'), '/demo/schwaab2021.pdf#page=6');
+  assert.equal(await page.locator('#showreel-view mark').textContent(), 'are related to low ET rates');
+  await page.locator('#showreel-view').evaluate(async (el) => {
+    await Promise.all(el.getAnimations({ subtree: true }).map((animation) => animation.finished));
+  });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Walkthrough overflows on mobile');
+  await page.locator('.showreel').screenshot({ path: join(out, 'mobile-showreel.png'), scale: 'css' });
+  assert.equal(trailerRequests, 0);
+  const trigger = page.getByRole('button', { name: /Watch trailer/ });
+  await trigger.click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Close', exact: true }).waitFor();
+  await page.waitForFunction(() => {
+    const video = document.querySelector('.showreel video');
+    return video?.readyState >= 1 && video.duration > 33 && video.duration < 35;
+  });
+  assert.ok(trailerRequests > 0);
+  const video = dialog.locator('video');
+  assert.equal(await video.evaluate((node) => node.paused), true, 'Video must not autoplay');
+  await video.evaluate((node) => node.play());
+  await page.waitForFunction(() => document.querySelector('.showreel video')?.currentTime > 0);
+  await page.screenshot({ path: join(out, 'mobile-trailer.png'), scale: 'css' });
+  await page.keyboard.press('Escape');
+  await dialog.waitFor({ state: 'hidden' });
+  await page.waitForFunction(() => !document.querySelector('.showreel video') && document.activeElement?.classList.contains('showreel__trailer'));
   const posts = [];
   const results = [201, 409, 503];
   await page.route(provider, async (route) => {
     posts.push({ method: route.request().method(), body: route.request().postDataJSON() });
-    await route.fulfill({ status: results.shift() ?? 500 });
+    const status = results.shift() ?? 500;
+    if (status === 409) await route.fulfill({ status, json: { code: '23505' } });
+    else await route.fulfill({ status });
   });
   await input.fill('invalid');
   await button.click();
   await page.getByText('Please enter a valid email address.', { exact: true }).waitFor();
   assert.equal(await input.evaluate((el) => el === document.activeElement), true);
   assert.equal(posts.length, 0);
-  for (const message of ['You’re signed up!', 'You’re already signed up.', 'We couldn’t complete your signup. Please try again.']) {
+  for (const message of ['You’re signed up!', 'You’re signed up!', 'We couldn’t complete your signup. Please try again.']) {
     await input.fill('Pilot@Example.invalid');
     await button.click();
     await page.getByText(message, { exact: true }).waitFor();
@@ -137,7 +184,7 @@ try {
   assert.deepEqual(posts, Array.from({ length: 3 }, () => ({ method: 'POST', body: { email: 'pilot@example.invalid', source: 'landing_page', marketing_consent: true } })));
   assert.deepEqual(errors, []);
   for (const path of ['/lesson/demo', '/upload', '/privacy']) assert.equal((await fetch(base + path)).status, 200, path);
-  console.log('PASS: 1440/390/360 layout, continuous mascot lap and pause/resume, scroll companion, reduced motion, signup above fold, invalid/focus and mock signup 201/409/503, demo/upload/privacy routes, no browser errors.');
+  console.log('PASS: 1440/390/360 layout, mascot lap/pause/scroll/Turbo, reduced motion, keyboard walkthrough, lazy trailer playback and focus return, mock signup 201/409/503, demo/upload/privacy, no browser errors.');
   console.log(`Screenshots: ${out}`);
 } finally {
   await browser?.close();

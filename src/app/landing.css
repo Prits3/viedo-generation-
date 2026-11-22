@@ -93,8 +93,12 @@
 .cinema-play:hover { background: var(--cinema-amber); }
 .cinema-play span:first-child { font-size: .7rem; }
 
-.layla-motion { grid-area: 1 / 2; justify-self: end; align-self: start; position: relative; z-index: 1; min-height: 44px; padding: 5px 11px; border: 1px solid #9789ac; border-radius: 999px; background: #171429; color: var(--cinema-white); font-size: .76rem; font-weight: 650; }
-.layla-motion:hover { border-color: var(--cinema-green); }
+.layla-controls { grid-area: 1 / 2; justify-self: end; align-self: start; position: relative; z-index: 1; display: flex; gap: 6px; }
+.layla-controls button { min-height: 44px; padding: 5px 11px; border: 1px solid #9789ac; border-radius: 999px; background: #171429; color: var(--cinema-white); font-size: .76rem; font-weight: 650; white-space: nowrap; }
+.layla-controls button:hover { border-color: var(--cinema-green); }
+.layla-controls .layla-turbo { background: var(--cinema-green); border-color: var(--cinema-green); color: #171429; }
+.cinema-frame[data-flight-boost="true"] .layla-turbo { background: var(--cinema-amber); border-color: var(--cinema-amber); }
+.cinema-frame[data-flight-boost="true"] .layla-wake i { background: #fff1cd; box-shadow: 0 0 14px #ffce70; }
 .layla-light { position: absolute; inset: 10% -10% 18%; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at 50% 51%, #8ff7d560, #907bcb35 40%, transparent 63%); opacity: .6; }
 .layla-airspace { position: absolute; inset: 16% 7% 22%; container-type: size; pointer-events: none; }
 .layla-route { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: #b4ffe295; stroke-width: 1.15; stroke-dasharray: 2 6; }
@@ -115,6 +119,38 @@
 .cinema-home .features strong { font-size: .95rem; color: var(--cinema-white); }
 .cinema-home .features span { font-size: .85rem; color: var(--cinema-muted); }
 
+.showreel { display: grid; align-items: center; gap: clamp(20px, 4vw, 64px); grid-template-columns: minmax(0, .74fr) minmax(0, 1.26fr); border-block-start: 1px solid #6e5c81; padding-block: clamp(24px, 4vw, 55px); }
+.showreel__intro h2 { font: 760 clamp(1.9rem, 4vw, 3.5rem)/1.02 var(--sans); letter-spacing: -.066em; text-wrap: balance; max-width: 13ch; margin: 6px 0 12px; }
+.showreel__intro p { color: var(--cinema-muted); max-width: 38ch; }
+.showreel__trailer, .showreel__dialog button { min-height: 44px; border: 1px solid #9383a4; border-radius: 8px; padding: 8px 14px; background: #201936; color: var(--cinema-white); font-weight: 690; }
+.showreel__trailer { display: inline-flex; align-items: center; gap: 10px; margin-top: 18px; }
+.showreel__trailer:hover, .showreel__dialog button:hover { border-color: var(--cinema-amber); }
+.showreel__trailer span { color: var(--cinema-amber); }
+.showreel__trailer small { color: var(--cinema-muted); font-variant-numeric: tabular-nums; }
+.showreel__workbench { min-width: 0; border: 1px solid #6b5a83; border-radius: 17px; padding: 8px; background: #1b1630; box-shadow: 0 22px 46px #07061457; }
+.showreel__steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
+.showreel__steps button { min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 5px; background: transparent; border: 1px solid #6b5a83; border-radius: 9px; color: var(--cinema-white); font-weight: 700; }
+.showreel__steps button span { font-size: .75em; color: #d3c6ee; font-variant-numeric: tabular-nums; }
+.showreel__steps button[aria-pressed="true"] { color: #1b1630; background: var(--cinema-amber); border-color: transparent; }
+.showreel__steps button[aria-pressed="true"] span { color: #58412d; }
+.showreel__card { position: relative; isolation: isolate; overflow: hidden; min-height: 244px; padding: clamp(16px, 3vw, 35px); color: #231c34; border-radius: 9px; background: #f3ecde; }
+.showreel__card[data-view="lesson"] { background: #dcf2e8; }
+.showreel__card[data-view="source"] { background: #f7ead3; }
+.showreel__card-label { font-size: .82rem; font-weight: 750; }
+.showreel__card h3 { margin-top: 8px; font-size: clamp(1.3rem, 2.5vw, 2.2rem); letter-spacing: -.043em; line-height: 1.08; text-wrap: balance; }
+.showreel__card p { margin-top: 8px; max-width: 42ch; }
+.showreel__card a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: #472a66; font-weight: 690; }
+.showreel__card blockquote { margin: 8px 0 0; font-weight: 650; }
+.showreel__card mark { position: relative; isolation: isolate; display: inline-block; max-width: 100%; padding: 1px 5px; background: transparent; color: #231c34; }
+.showreel__card mark::before { content: ""; position: absolute; z-index: -1; inset: 0; background: #ffdd7a; transform-origin: left; }
+.showreel__diagram { position: absolute; z-index: -1; width: min(29%, 170px); right: 5%; bottom: 10%; color: #4d3276; opacity: .16; pointer-events: none; }
+.showreel__card[data-view="lesson"] .showreel__diagram { color: #0f624e; }
+.showreel__dialog { position: fixed; width: min(900px, calc(100% - 30px)); max-height: calc(100dvh - 30px); padding: clamp(12px, 2vw, 24px); border: 1px solid #8b77a8; border-radius: 18px; color: var(--cinema-white); background: #171228; }
+.showreel__dialog::backdrop { background: #080613df; }
+.showreel__dialog header { display: flex; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.showreel__dialog video { display: block; width: 100%; background: #0e0b1b; aspect-ratio: 16 / 9; }
+.showreel__dialog p { margin-top: 8px; color: var(--cinema-muted); font-size: .84rem; }
+
 @media (prefers-reduced-motion: no-preference) {
   .cinema-frame__art { animation: cinema-push 10s ease-in-out infinite; }
   .layla-light { animation: layla-sweep 10s ease-in-out infinite; }
@@ -123,7 +159,17 @@
   .layla-wake { animation: layla-wake 10s linear infinite; }
   .layla-dock svg { animation: layla-float 3s ease-in-out infinite; }
   .cinema-frame[data-flight-paused="true"] :is(.cinema-frame__art, .layla-light, .layla-pilot, .layla-pilot__duck, .layla-wake, .layla-dock svg),
-  .cinema-frame[data-flight-offscreen="true"] :is(.cinema-frame__art, .layla-light, .layla-pilot, .layla-pilot__duck, .layla-wake) { animation-play-state: paused; }
+  .cinema-frame[data-flight-offscreen="true"] :is(.cinema-frame__art, .layla-light, .layla-pilot, .layla-pilot__duck, .layla-wake),
+  .cinema-home:has(.showreel__dialog[open]) .cinema-frame :is(.cinema-frame__art, .layla-light, .layla-pilot, .layla-pilot__duck, .layla-wake, .layla-dock svg) { animation-play-state: paused; }
+  .showreel__card { animation: showreel-arrive .26s ease-out both; }
+  .showreel__scan, .showreel__card mark::before { animation: showreel-scan .48s .12s ease-out both; }
+  .showreel__scan { transform-origin: 55px 82px; }
+  .showreel__bar { transform-origin: 0 113px; animation: showreel-rise .46s ease-out both; }
+  .showreel__bar:nth-child(3) { animation-delay: .08s; }
+  .showreel__bar:nth-child(4) { animation-delay: .16s; }
+  @keyframes showreel-arrive { from { opacity: .6; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes showreel-scan { from { transform: scaleX(.08); } to { transform: scaleX(1); } }
+  @keyframes showreel-rise { from { transform: scaleY(.12); } to { transform: scaleY(1); } }
   .cinema-home .early:not(:focus-within)::after { animation: cinema-signal 1.25s .12s ease-out both; }
   .cinema-home .early button { transition: transform .16s ease; }
   .cinema-home .early button:hover:not(:disabled) { transform: translateY(-2px); }
@@ -154,11 +200,12 @@
   @keyframes layla-float { 0%, 100% { transform: translate(1px, 0) rotate(5deg) scaleX(-1); } 50% { transform: translate(-13px, -15px) rotate(-10deg) scaleX(-1); } }
   @keyframes cinema-signal { 0%, 100% { opacity: 0; } 36% { opacity: .75; } }
 }
-@media (prefers-reduced-motion: reduce) { .layla-motion, .layla-dock, .layla-wake { display: none; } }
+@media (prefers-reduced-motion: reduce) { .layla-controls, .layla-dock, .layla-wake { display: none; } }
 @media (max-width: 840px) {
   .cinema-hero { grid-template-columns: 1fr; max-width: 680px; margin-inline: auto; }
   .cinema-hero h1 { font-size: clamp(2.7rem, 8.7vw, 4.7rem); }
   .cinema-frame { min-height: clamp(334px, 62vw, 476px); }
+  .showreel { grid-template-columns: 1fr; }
   .layla-dock { width: 52px; height: 49px; }
   .layla-dock svg { width: 41px; }
   .cinema-home .features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -171,5 +218,8 @@
   .cinema-hero h1 { font-size: clamp(2.25rem, 10vw, 2.65rem); }
   .cinema-home .early__form { grid-template-columns: 1fr; }
   .cinema-frame { gap: 10px; }
+  .cinema-frame__tag { padding-inline: 7px; font-size: .7rem; }
+  .layla-controls button { padding-inline: 7px; font-size: .7rem; }
+  .layla-turbo span { display: none; }
   .cinema-play { padding-inline: 10px; }
 }
