@@ -1,0 +1,9 @@
+# Large local demo video — the site uses a YouTube embed, so this never needs uploading.
+public/mp4/*.mp4
+
+# Python FastAPI backend is not deployed on Vercel (the frontend demo doesn't need it).
+backend/
+
+# Build output / local caches
+.next/
+test-results/
