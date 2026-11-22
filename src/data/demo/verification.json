@@ -1,7 +1,7 @@
 {
  "mode": "manual",
  "fullyChecked": true,
- "checkedAt": "2026-11-21",
+ "checkedAt": "2026-11-22",
  "reviewer": "Build agent, page by page against the PDF",
  "method": "Inventory written page by page from the PDF text layer; figures read from rendered pages. Machine check: every quote found on its stated page, coverage in both directions, on-screen numbers matched to the inventory, reference list 1-84 continuous.",
  "quoteChecks": {
