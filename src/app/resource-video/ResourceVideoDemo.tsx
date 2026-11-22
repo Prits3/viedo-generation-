@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Waitlist } from "@/components/Waitlist";
 
 /* ──────────────────────────────────────────────────────────────────────────
    CONFIGURATION — replace the prepared video here.
@@ -253,6 +254,12 @@ export function ResourceVideoDemo() {
             </section>
           </aside>
         </div>
+
+        <Waitlist
+          source="resource-video"
+          heading="Want lessons from your own resources?"
+          blurb="This is an early demo. Join the waitlist and we’ll email you when you can generate lessons from your uploads."
+        />
       </main>
     );
   }
