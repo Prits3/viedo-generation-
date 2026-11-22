@@ -4,7 +4,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { closeSync, mkdirSync, openSync } from "node:fs";
 import { join } from "node:path";
-import { has, isHosted, isShowcase,loadLesson, pathIn, readJson, storeDir, writeJson } from "./store.ts";
+import { has, isHosted, isShowcase, loadLesson, pathIn, readJson, storeDir, writeJson } from "./store.ts";
 import { ERROR_TEXT } from "./limits.ts";
 import { planVideo, scenesWithoutNarration, VIDEO_FORMATS, type VideoFormat } from "./video-plan.ts";
 

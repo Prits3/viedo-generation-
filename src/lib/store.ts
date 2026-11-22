@@ -54,9 +54,15 @@ export const sha8 = (s: string) => createHash("sha256").update(s).digest("hex").
 export const isHosted = (): boolean =>
   Boolean(process.env.VERCEL || process.env.NETLIFY || process.env.LAMBDA_TASK_ROOT || process.env.AWS_LAMBDA_FUNCTION_NAME);
 
+/**
+ * True on any public deployment, serverless or not (Hugging Face Spaces set SPACE_ID).
+ * There are no accounts, so the start page then lists the examples only.
+ */
+export const isPublicDeployment = (): boolean => isHosted() || Boolean(process.env.SPACE_ID) || process.env.LESSON_PUBLIC === "1";
+
 export function storeDir(): string {
   // On a serverless host only /tmp is writable (and it is per instance, so generated lessons there are temporary).
-  const fallback = isHosted() ?join(/*turbopackIgnore: true*/ "/tmp", "lessons") : join(/*turbopackIgnore: true*/ ".data", "lessons");
+  const fallback = isHosted() ? join(/*turbopackIgnore: true*/ "/tmp", "lessons") : join(/*turbopackIgnore: true*/ ".data", "lessons");
   return resolve(/*turbopackIgnore: true*/ process.env.LESSON_STORE_DIR || fallback);
 }
 
@@ -179,7 +185,7 @@ export function listLessons(): LessonSummary[] {
   // There are no accounts: on a public deployment the list would show every visitor's lessons to
   // everyone. There it lists the examples only; a visitor's own lesson stays reachable by its link.
   // LESSON_LIST_ALL=1 lists everything anyway (a private deployment).
-  const listOwn = !isHosted() ||process.env.LESSON_LIST_ALL === "1";
+  const listOwn = !isPublicDeployment() || process.env.LESSON_LIST_ALL === "1";
   const own = listOwn ? idsIn(storeDir()) : [];
   const examples = idsIn(showcaseDir()).filter((id) => !own.includes(id));
   const out: LessonSummary[] = [];
