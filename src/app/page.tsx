@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Library } from "@/components/Library";
 import { EarlyAccess } from "@/components/EarlyAccess";
-import { DuckFigure } from "@/components/Duck";
+import { LaylaFlight } from "@/components/LaylaFlight";
 import { BRAND, REPO_URL } from "@/lib/brand";
 import "./landing.css";
 
@@ -27,25 +27,12 @@ export default function Home() {
       </header>
       <section className="cinema-hero" aria-labelledby="landing-title">
         <div className="cinema-intro">
-          <p className="cinema-kicker"><span aria-hidden="true" /> Research, in motion</p>
-          <h1 id="landing-title">Watch the paper.<br />Check the source.</h1>
-          <p className="cinema-lead">Turn dense papers, documents and slides into narrated visual lessons. Jump from a scene straight to the evidence behind it.</p>
+          <p className="cinema-kicker"><span aria-hidden="true">✦</span> Meet Layla, your research sidekick</p>
+          <h1 id="landing-title">Watch the paper.<br /><span>Follow the duck.</span></h1>
+          <p className="cinema-lead">Turn dense papers, documents and slides into narrated visual lessons. Tap a claim to see exactly where it came from.</p>
           <EarlyAccess />
         </div>
-        <figure className="cinema-frame">
-          <div className="cinema-frame__art" aria-hidden="true" />
-          <span className="cinema-frame__tag">Illustrated lesson</span>
-          <svg className="cinema-frame__duck" viewBox="0 0 120 132" aria-hidden="true" focusable="false">
-            <DuckFigure pose="wow" aim={-12} />
-          </svg>
-          <figcaption className="cinema-frame__caption">
-            <strong>How do trees cool a city?</strong>
-            <small>Urban heat in 293 European cities</small>
-          </figcaption>
-          <Link href="/lesson/demo" className="cinema-play" data-action="try-example" aria-label="Play the example lesson: How do trees cool a city?">
-            <span aria-hidden="true">▶</span> <span>Play example</span>
-          </Link>
-        </figure>
+        <LaylaFlight />
       </section>
       <ul className="features">
         <li>
