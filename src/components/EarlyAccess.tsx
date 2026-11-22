@@ -5,7 +5,7 @@
 // works on serverless/Vercel. Reads are blocked for this key, so the list is never exposed.
 import { useRef, useState } from "react";
 
-type State = { kind: "idle" | "sending" | "done" | "exists" } | { kind: "error"; message: string };
+type State = { kind: "idle" | "sending" | "done" } | { kind: "error"; message: string };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -33,26 +33,27 @@ export function EarlyAccess() {
 
     setState({ kind: "sending" });
     try {
+      const headers = new Headers({
+        "content-type": "application/json",
+        Prefer: "return=minimal",
+      });
+      headers.set("apikey", SUPABASE_KEY);
+      // Legacy anon keys are JWTs. Modern publishable keys belong only in apikey.
+      if (SUPABASE_KEY.startsWith("eyJ")) headers.set("Authorization", `Bearer ${SUPABASE_KEY}`);
       const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
         method: "POST",
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          "content-type": "application/json",
-          Prefer: "return=minimal",
-        },
+        headers,
+        signal: AbortSignal.timeout(8000),
         // The note below states the email is used for sign-in and launch news, so consent is given.
         body: JSON.stringify({ email: value, source: "landing_page", marketing_consent: true }),
       });
       if (res.status === 201 || res.status === 200 || res.status === 204) return setState({ kind: "done" });
-      if (res.status === 409) return setState({ kind: "exists" }); // unique_violation → already on the list
+      if (res.status === 409 && (await res.json())?.code === "23505") return setState({ kind: "done" });
       return setState({ kind: "error", message: FAILURE });
     } catch {
       return setState({ kind: "error", message: FAILURE });
     }
   }
-
-  const settled = state.kind === "done" || state.kind === "exists";
 
   return (
     <section className="early" id="early-access" aria-labelledby="early-title">
@@ -60,9 +61,9 @@ export function EarlyAccess() {
         <h2 id="early-title">Get early access</h2>
         <p>Be first to hear when your own lesson library opens.</p>
       </div>
-      {settled ? (
+      {state.kind === "done" ? (
         <p className="early__done" role="status" data-state="signup-done">
-          {state.kind === "done" ? "You’re signed up!" : "You’re already signed up."}
+          You’re signed up!
         </p>
       ) : (
         <form className="early__form" method="post" onSubmit={submit} noValidate>
