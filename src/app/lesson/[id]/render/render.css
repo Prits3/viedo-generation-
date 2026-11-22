@@ -1,0 +1,65 @@
+/* Video frame (/lesson/<id>/render). Everything is scoped under .rv; the scene and duck styles
+   themselves come from globals.css and are only placed here.
+   Sizes are CSS pixels of the render viewport: 432 x 768 at scale 2.5 gives 1080 x 1920. */
+.rv { position: relative; overflow: hidden; background: #0a101d; color: var(--ink); }
+.rv-message { padding: 96px 28px; font-size: 1.1rem; }
+.rv .rv-stage { position: absolute; inset: 0; aspect-ratio: auto; border: 0; border-radius: 0; cursor: default; background: radial-gradient(120% 60% at 85% 0%, #1a2a55 0%, transparent 60%), linear-gradient(170deg, #0d1730 0%, #0a101d 65%, #070b15 100%); }
+.rv button { cursor: default; }
+
+/* Vertical 9:16. Text stays out of the areas short-video apps cover with their own interface:
+   top 130, bottom 484, left 44 and right 140 of 1080 x 1920 output pixels (third-party guidance
+   for TikTok, a default and not an official figure). In CSS pixels at scale 2.5: */
+.rv--vertical { --safe-top: 52px; --safe-right: 56px; --safe-bottom: 194px; --safe-left: 18px; --bottom-h: 118px; }
+.rv--vertical .rv-stage > .scene { inset: calc(var(--safe-top) + 28px) var(--safe-right) calc(var(--safe-bottom) + var(--bottom-h) + 10px) var(--safe-left); padding: 4px 0 0; gap: 8px; font-size: 12.5px; }
+.rv--vertical .rv-stage > .mascot { left: auto; right: calc(var(--safe-right) + 2px); top: calc(var(--safe-top) + 22px); bottom: auto; width: 64px; }
+.rv--vertical .scene--lane .scene__head { padding-right: 74px; min-height: 72px; }
+/* Question card: the duck stands in the top right corner and the headline starts below it, so a
+   long headline can never run under the duck. */
+.rv--vertical .rv-stage[data-scene-type="question"] > .mascot { top: calc(var(--safe-top) + 24px); right: calc(var(--safe-right) + 6px); bottom: auto; width: 88px; }
+.rv--vertical .qcard { padding: 84px 4px 0; background: none; align-content: start; gap: 12px; }
+.rv--vertical .qcard__kicker { max-width: calc(100% - 110px); }
+.rv--vertical .qcard__headline { font-size: 2.3rem; }
+/* Room for the emphasised card (it grows a little) inside the clipped list, and earlier cards stay readable. */
+.rv--vertical .mstones { padding: 4px 10px 4px 2px; }
+.rv .scene[data-shot="close"] .is-dim { opacity: 0.5; }
+/* Cards that are not mentioned yet are hinted at (as steps and milestones already are), so the
+   frame is never empty while the first sentences are spoken. */
+.rv .scene .points__item.is-off { opacity: 0.16; transform: none; }
+.rv .rv-stage[data-repeated-head="true"] .scene__question { display: none; }
+.rv .rv-stage[data-repeated-head="true"] .scene__head { min-height: 0; }
+
+.rv-top { position: absolute; z-index: 4; top: var(--safe-top); left: var(--safe-left); right: var(--safe-right); display: flex; align-items: center; height: 18px; }
+.rv-ai { font-size: 10px; line-height: 1; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; color: var(--ink-2); border: 1px solid #5b6f9c; border-radius: 999px; padding: 3px 8px; background: #0a101dcc; }
+
+.rv-bottom { position: absolute; z-index: 4; left: var(--safe-left); right: var(--safe-right); bottom: var(--safe-bottom); height: var(--bottom-h); display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; }
+.rv-chip { align-self: flex-start; max-width: 100%; display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px; background: #0b1222; border: 1.5px solid var(--accent); color: var(--accent); font-size: 14px; line-height: 1; white-space: nowrap; }
+.rv-chip svg { flex: none; }
+.rv-chip strong { flex: none; font-weight: 800; }
+.rv-chip span { color: var(--ink); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; }
+.rv-caption { height: 78px; display: grid; place-items: center; padding: 4px 12px; border-radius: 14px; background: #04070df2; border: 1px solid #2a3757; }
+.rv-caption:empty { visibility: hidden; }
+.rv-caption p { font-size: 21px; line-height: 1.24; font-weight: 800; letter-spacing: -0.005em; color: #fff; text-align: center; text-wrap: balance; }
+
+/* End card */
+.rv-end { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left); background: radial-gradient(90% 50% at 50% 30%, #1d2c57 0%, transparent 70%), #0a101d; animation: rv-fade 0.4s ease both; }
+@keyframes rv-fade { from { opacity: 0; } }
+.rv-end__duck { width: 120px; height: auto; overflow: visible; margin-bottom: 6px; }
+.rv-end__brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-weight: 600; font-size: 34px; line-height: 1.1; }
+.rv-end__brand i { width: 28px; height: 28px; border-radius: 8px; background: conic-gradient(from 210deg, var(--warm), var(--accent), var(--cool), var(--warm)); }
+.rv-end__line { font-size: 19px; font-weight: 700; color: var(--accent); }
+.rv-end__title { font-family: var(--serif); font-size: 19px; line-height: 1.25; margin-top: 10px; text-wrap: balance; }
+.rv-end__source { font-size: 12.5px; line-height: 1.35; color: var(--ink-2); text-wrap: balance; overflow-wrap: anywhere; }
+.rv-end__ai { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; color: var(--ink-3); margin-top: 6px; }
+
+/* Landscape 16:9: 960 x 540 at scale 2 gives 1920 x 1080. The scene keeps its desktop layout
+   above a caption bar. */
+.rv--landscape { --safe-top: 12px; --safe-right: 16px; --safe-bottom: 12px; --safe-left: 16px; --bottom-h: 104px; }
+.rv--landscape .rv-stage > .scene { inset: 0 0 calc(var(--bottom-h) + var(--safe-bottom) + 4px) 0; }
+.rv--landscape .rv-stage > .mascot { bottom: calc(var(--bottom-h) + var(--safe-bottom) + 10px); }
+.rv--landscape .rv-stage[data-scene-type="question"] > .mascot { bottom: calc(var(--bottom-h) + var(--safe-bottom) + 30px); }
+.rv--landscape .rv-top { justify-content: flex-end; }
+.rv--landscape .rv-bottom { left: 130px; right: 130px; gap: 6px; }
+.rv--landscape .rv-caption { height: 68px; }
+.rv--landscape .rv-caption p { font-size: 22px; }
+.rv--landscape .rv-chip { height: 28px; font-size: 13px; }
+.rv--landscape .rv-end { padding: 24px 120px; }
