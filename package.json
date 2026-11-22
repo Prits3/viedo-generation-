@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "assets": "node scripts/copy-pdf-worker.mjs",
+    "assets": "node scripts/copy-pdf-worker.mjs && node scripts/copy-showcase-videos.mjs",
     "predev": "npm run assets",
     "prebuild": "npm run assets",
     "dev": "next dev",

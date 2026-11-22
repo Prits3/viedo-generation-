@@ -4,7 +4,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { closeSync, mkdirSync, openSync } from "node:fs";
 import { join } from "node:path";
-import { has, isShowcase, loadLesson, pathIn, readJson, storeDir, writeJson } from "./store.ts";
+import { has, isHosted, isShowcase,loadLesson, pathIn, readJson, storeDir, writeJson } from "./store.ts";
 import { ERROR_TEXT } from "./limits.ts";
 import { planVideo, scenesWithoutNarration, VIDEO_FORMATS, type VideoFormat } from "./video-plan.ts";
 
@@ -52,7 +52,7 @@ export function startExport(id: string, format: VideoFormat): StartResult {
     if (ready.state === "done") return { ok: true, status: ready };
     return { ok: false, code: 409, title: ERROR_TEXT.read_only.title, help: "Only the vertical video comes with this example. Other formats are exported from your own lessons, in the app running locally." };
   }
-  if (process.env.VERCEL) return { ok: false, code: 501, title: "Video export runs in the local app", help: "Rendering an MP4 needs ffmpeg and a headless browser, which this hosted version does not have. Run the app locally (npm run build && npm start) to export." };
+  if (isHosted()) return { ok: false, code: 501, title: "Video export runs in the local app", help: "Rendering an MP4 needs ffmpeg and a headless browser, which this hosted version does not have. Run the app locally (npm run build && npm start) to export." };
   const silent = scenesWithoutNarration(planVideo(file.lesson));
   if (silent.length)
     return {

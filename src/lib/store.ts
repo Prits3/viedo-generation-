@@ -47,9 +47,16 @@ const ID = /^l-[a-z0-9]{8,24}$/;
 /** Short content hash, used to name audio files after the sentences they speak. */
 export const sha8 = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 8);
 
+/**
+ * True on a serverless host (Vercel, Netlify, any AWS Lambda): read-only code directory, no ffmpeg,
+ * no headless browser, and no accounts, so visitors must not see each other's lessons.
+ */
+export const isHosted = (): boolean =>
+  Boolean(process.env.VERCEL || process.env.NETLIFY || process.env.LAMBDA_TASK_ROOT || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
 export function storeDir(): string {
-  // On Vercel only /tmp is writable (and it is per instance, so generated lessons there are temporary).
-  const fallback = process.env.VERCEL ? join(/*turbopackIgnore: true*/ "/tmp", "lessons") : join(/*turbopackIgnore: true*/ ".data", "lessons");
+  // On a serverless host only /tmp is writable (and it is per instance, so generated lessons there are temporary).
+  const fallback = isHosted() ?join(/*turbopackIgnore: true*/ "/tmp", "lessons") : join(/*turbopackIgnore: true*/ ".data", "lessons");
   return resolve(/*turbopackIgnore: true*/ process.env.LESSON_STORE_DIR || fallback);
 }
 
@@ -172,7 +179,7 @@ export function listLessons(): LessonSummary[] {
   // There are no accounts: on a public deployment the list would show every visitor's lessons to
   // everyone. There it lists the examples only; a visitor's own lesson stays reachable by its link.
   // LESSON_LIST_ALL=1 lists everything anyway (a private deployment).
-  const listOwn = !process.env.VERCEL || process.env.LESSON_LIST_ALL === "1";
+  const listOwn = !isHosted() ||process.env.LESSON_LIST_ALL === "1";
   const own = listOwn ? idsIn(storeDir()) : [];
   const examples = idsIn(showcaseDir()).filter((id) => !own.includes(id));
   const out: LessonSummary[] = [];

@@ -1,0 +1,37 @@
+# Netlify: Next.js is detected and built with Netlify's Next.js runtime (OpenNext adapter).
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# The example videos are larger than a function response may be, so they are served as static
+# files copied to public/showcase/ at build time (scripts/copy-showcase-videos.mjs).
+[[redirects]]
+  from = "/api/lessons/l-n0tfgq8fznas/export/:file"
+  to = "/showcase/l-n0tfgq8fznas/:file"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/lessons/l-ov5pmkhgkfz6/export/:file"
+  to = "/showcase/l-ov5pmkhgkfz6/:file"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/lessons/l-zl0jsgukw6kl/export/:file"
+  to = "/showcase/l-zl0jsgukw6kl/:file"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/showcase/*"
+  [headers.values]
+    Content-Disposition = "attachment"
+    X-Content-Type-Options = "nosniff"
+
+[functions]
+  # Example lessons are read from disk at runtime; file tracing cannot see the dynamic paths.
+  included_files = ["showcase/**"]
