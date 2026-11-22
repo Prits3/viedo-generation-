@@ -42,7 +42,7 @@ export default function Home() {
           <span>A content inventory shows where each result, figure, formula, footnote and reference lives.</span>
         </li>
       </ul>
-      <Library heading="Lessons made on this server" />
+      <Library heading="Shorts and lessons" />
       <div className="example">
         <strong>Example paper</strong>
         <span>Schwaab et al. (2021). The role of urban trees in reducing land surface temperatures in European cities. Nature Communications 12:6763.</span>

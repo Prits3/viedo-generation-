@@ -40,9 +40,10 @@ What we leave out of the pitch: the local voice, open-weight models on Bedrock, 
 | Piece | State | Owner branch |
 |---|---|---|
 | Full lesson from PDF or text, with source view | working | `paperscenes-prototype` |
-| Short mode: hook, 3 to 5 points, takeaway, 45 to 90 s | in progress | `feat/shorts` |
-| Drop PDF, TXT, MD, DOCX, PPTX | in progress | `feat/shorts` |
-| Vertical MP4 export 1080x1920 with captions, source chip, end card, post text | in progress | `feat/video-export` |
+| Short mode: hook, 3 to 5 points, takeaway, 45 to 90 s | working (9 of the last 11 stored shorts pass `check:shorts`; a failing one is flagged, not hidden) | `launch` |
+| Drop PDF, TXT, MD, DOCX, PPTX | working (`check:inputs` all pass) | `launch` |
+| Vertical MP4 export 1080x1920 with captions, source chip, end card, post text | working (`check:export` all pass on 3 shorts) | `launch` |
+| Three example shorts with MP4, read-only, for a deployment without keys or binaries | working | `launch` |
 | German output and voice | stretch | `feat/shorts` |
 | Tutor and practice (Python backend) | exists on `main` / `integration`, not connected to this branch | teammate |
 
@@ -103,15 +104,17 @@ Fill in from measured runs on the demo machine; until then say nothing about spe
 
 | Claim | Value | Evidence |
 |---|---|---|
-| Short from a 5-paragraph text | to be measured | `feat/shorts` report |
+| Short from a 5-paragraph text | to be measured end to end (model calls alone: 39 s in one run) | `check:shorts` output |
 | Short from a 9-page PDF | to be measured | |
-| MP4 export of a 60 s short | to be measured | `feat/video-export` report |
-| Cost per short | to be measured | provenance in the lesson file |
+| MP4 export of a 50 to 65 s short | 20 to 31 s on the owner's laptop (MSI Stealth A16, 4 render pages), 2026-11-22 | `export-video.mjs` output |
+| Cost per short | about $0.008 in one run (estimate from list prices) | provenance in the lesson file |
 | Full lesson, 9-page PDF | about 7 min, about $0.04 | README, run of 2026-11-21 |
 
 ## 7. Hosting for the demo
 
 The pipeline needs Piper, ffmpeg and headless Chromium and runs for minutes. That fits one Docker container on a VPS (`next start` behind Caddy), not serverless: Vercel limits a function to 300 s on Hobby and 250 MB per bundle ([limits](https://vercel.com/docs/functions/limitations)), Cloudflare Workers cannot run binaries ([docs](https://developers.cloudflare.com/workers/runtime-apis/nodejs/)). Before it goes public it needs: a generation cap per visitor that survives restarts, a spending cap on the model key, and deletion of uploads. Not built yet.
+
+**What we do for the launch (2026-11-22):** the public site runs on Vercel (domain learnlayla.xyz) as a showcase: the example lesson and three example shorts with their MP4s, all without model calls. The start page lists only the examples there, so visitors never see each other's lessons. Generation on Vercel stays off unless the team sets a Bedrock key and a spending limit; the live generation in the demo runs on the laptop (`npm start`), where Piper and the MP4 export work. See README, "Deploy on Vercel".
 
 User documents are sent to the model provider (Amazon Bedrock). AWS states that model providers have no access to prompts and completions ([data protection](https://docs.aws.amazon.com/bedrock/latest/userguide/data-protection.html)). The upload page should say this in one sentence.
 

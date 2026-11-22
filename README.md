@@ -29,6 +29,22 @@ Requires Node 22.13 or newer (tested with Node 24).
 
 The example lesson needs no configuration: no model call, no API key, no network. Narration, timings, figures and the PDF are in the repository.
 
+Three finished shorts (from a Word file, a PowerPoint file and a text) are bundled in `showcase/lessons/`, each with its recorded narration, its exported vertical MP4 and its post text. They are read-only, listed as "Example · with video" and open without a model call. Your own lessons go to the lesson store; an ID in both places is served from the store.
+
+## Deploy on Vercel
+
+The repository deploys as a normal Next.js project (framework preset Next.js, no build settings to change, Node 22 or newer). What works where:
+
+| | Vercel | Local or a VPS (`npm run build && npm start`) |
+|---|---|---|
+| Example lesson, the three example shorts, their MP4 download | yes | yes |
+| Generate a short or lesson | only with a model key set (below); browser voice, no Piper | yes, with Piper voice if installed |
+| Generated lessons | kept in `/tmp` of one function instance: temporary, may be gone on the next visit | kept in `.data/lessons` |
+| Lesson list on the start page | examples only (no accounts, so visitors would see each other's lessons) | all lessons on the server |
+| Export a new MP4 | no (needs ffmpeg and a headless browser); the page says so | yes |
+
+Steps: import the GitHub repository at vercel.com/new and deploy the branch that contains this code (set it as the Production Branch under Settings → Git if it is not `main`). Without environment variables the site shows the examples and the upload page explains that live generation is not configured. To allow generation, set `AWS_BEARER_TOKEN_BEDROCK` (and optionally `AWS_REGION`, `BEDROCK_MODEL_*`) under Settings → Environment Variables. Before you do that on a public URL: the rate limit is in memory per instance, so set a spending limit on the model account. A custom domain is added under Settings → Domains; Vercel then shows the DNS records to enter at the registrar.
+
 ## Configuration
 
 Only needed for "Make a lesson" (upload a PDF or paste a text). Set the variables in the shell or in `.env.local` (not committed). Keys are read on the server only; the app shows whether a key is present, never the key.
@@ -46,7 +62,9 @@ Only needed for "Make a lesson" (upload a PDF or paste a text). Set the variable
 | `LESSON_MODEL`, `LESSON_MODEL_FAST` | no | Anthropic models, default `claude-opus-5-5` and `claude-haiku-5-5`. |
 | `LESSON_EFFORT` | no | Anthropic only: `low` (default), `medium`, `high`. |
 | `PIPER_EXE`, `PIPER_VOICE`, `FFMPEG_EXE` | for recorded narration | Local Piper voice. Default voice file `.cache/voices/en_US-ljspeech-high.onnx`. Without Piper, generated lessons use the browser voice or captions. |
-| `LESSON_STORE_DIR` | no | Where generated lessons are stored. Default `.data/lessons` (not committed). |
+| `LESSON_STORE_DIR` | no | Where generated lessons are stored. Default `.data/lessons` (not committed); on Vercel `/tmp/lessons`. |
+| `LESSON_SHOWCASE_DIR` | no | Bundled read-only example lessons. Default `showcase/lessons`. |
+| `LESSON_LIST_ALL` | no | `1` lists every stored lesson on the start page also on Vercel (only for a private deployment). |
 | `LESSON_FIGURES` | no | `off` skips the vision step. |
 | `LESSON_RATE_LIMIT_MAX` | no | Generations per visitor per 10 minutes, default 4. |
 

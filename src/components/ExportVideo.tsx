@@ -24,7 +24,7 @@ interface Status {
 
 const FORMAT_LABEL: Record<VideoFormat, string> = { vertical: "Vertical 9:16 (TikTok, Reels, Shorts)", landscape: "Landscape 16:9" };
 
-export function ExportVideo({ id, lesson }: { id: string; lesson: Lesson }) {
+export function ExportVideo({ id, lesson, example = false }: { id: string; lesson: Lesson; example?: boolean }) {
   const [format, setFormat] = useState<VideoFormat>("vertical");
   const [loaded, setLoaded] = useState<{ format: VideoFormat; status: Status } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -87,9 +87,11 @@ export function ExportVideo({ id, lesson }: { id: string; lesson: Lesson }) {
             ))}
           </select>
         </label>
-        <button type="button" className="btn btn--small" onClick={start} disabled={running || silent > 0} data-action="export-video">
-          {running ? "Exporting…" : done ? "Export again" : "Export video"}
-        </button>
+        {!(example && done) && (
+          <button type="button" className="btn btn--small" onClick={start} disabled={running || silent > 0} data-action="export-video">
+            {running ? "Exporting…" : done ? "Export again" : "Export video"}
+          </button>
+        )}
         {done && (
           <>
             <a className="btn btn--primary btn--small" href={`/api/lessons/${id}/export/${format}.mp4`} download data-action="download-video">

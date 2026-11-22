@@ -251,7 +251,7 @@ try {
     "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", String(AUDIO_RATE), "-movflags", "+faststart",
     "-metadata", `title=${lesson.meta.title}`, "-metadata", "comment=AI-generated with PaperScenes. Every claim links to its source.", partial]);
   renameSync(partial, outFile);
-  writeFileSync(join(outDir, "caption.txt"), shareCaption(lesson, file.provenance.sourceName));
+  writeFileSync(join(outDir, "caption.txt"), shareCaption(lesson, file.provenance.sourceName, file.provenance.sourceFormat));
 
   clearInterval(heartbeat);
   cleanup();

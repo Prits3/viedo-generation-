@@ -105,7 +105,8 @@ export type GenerateErrorCode =
   | "model_refused"
   | "invalid_model_output"
   | "upstream_error"
-  | "timeout";
+  | "timeout"
+  | "read_only";
 
 export const ERROR_TEXT: Record<GenerateErrorCode, { title: string; help: string }> = {
   invalid_request: { title: "No file received", help: "Choose a file or paste a text and try again." },
@@ -128,4 +129,5 @@ export const ERROR_TEXT: Record<GenerateErrorCode, { title: string; help: string
   invalid_model_output: { title: "The generated storyboard was not usable", help: "The model output failed validation, so nothing was rendered. Trying again often helps." },
   upstream_error: { title: "The model service returned an error", help: "This is usually temporary. Try again in a moment." },
   timeout: { title: "Generation took too long", help: "The model call was stopped. Try a shorter paper." },
+  read_only: { title: "Example lessons cannot be changed", help: "This is one of the bundled examples. Generate your own lesson to regenerate scenes or export other formats." },
 };

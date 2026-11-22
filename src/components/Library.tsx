@@ -17,6 +17,7 @@ interface Summary {
   updatedAt: string;
   scenes?: number;
   voice?: string;
+  example?: boolean;
 }
 
 const FORMAT = { pdf: "PDF", text: "Text", docx: "Word", pptx: "Slides" };
@@ -48,10 +49,10 @@ export function Library({ heading }: { heading: string }) {
             )}
             {l.mode === "short" && <span className="chip" style={{ background: "var(--accent)", color: "var(--accent-ink)", borderColor: "var(--accent)", fontWeight: 700 }}>Short</span>}
             <span className="chip">{FORMAT[l.format ?? l.kind]}</span>
+            {l.example && <span className="chip">Example · with video</span>}
             <span className="library__meta">
               {l.status === "done" ? `${l.scenes} scenes${l.seconds ? ` · ${clock(l.seconds)}` : ""} · ${l.voice === "browser" ? "browser voice" : "recorded voice"}` : l.status === "running" ? `generating (${l.stage})` : `stopped at "${l.stage}" · can be resumed`}
-              {" · "}
-              {l.updatedAt.slice(0, 16).replace("T", " ")}
+              {!l.example && ` · ${l.updatedAt.slice(0, 16).replace("T", " ")}`}
             </span>
           </li>
         ))}

@@ -18,15 +18,21 @@ export function takeaway(lesson: Lesson): string {
 }
 
 /** One line that names the source, for the end card and the post text. */
-export function sourceLine(lesson: Lesson, sourceName: string): string {
+export type SourceFormat = "pdf" | "text" | "docx" | "pptx";
+
+const FILE_KIND: Record<"docx" | "pptx", string> = { docx: "Word file", pptx: "PowerPoint file" };
+
+/** `sourceFormat` comes from the lesson's provenance; Word and PowerPoint sources are stored as text. */
+export function sourceLine(lesson: Lesson, sourceName: string, sourceFormat?: SourceFormat): string {
   const m = lesson.meta;
+  if (sourceFormat === "docx" || sourceFormat === "pptx") return `${FILE_KIND[sourceFormat]} "${sourceName}"`;
   if (m.sourceKind === "text") return `pasted text "${sourceName}"`;
   const by = m.authors ? ` by ${m.authors}` : "";
   const year = m.year ? ` (${m.year})` : "";
   return `"${m.title}"${by}${year}, file ${sourceName}`;
 }
 
-export function shareCaption(lesson: Lesson, sourceName: string): string {
+export function shareCaption(lesson: Lesson, sourceName: string, sourceFormat?: SourceFormat): string {
   const tags = ["#science", "#explained", "#learning", "#education", ...(lesson.meta.sourceKind === "pdf" ? ["#research"] : [])];
   return [
     lesson.meta.title,
@@ -34,7 +40,7 @@ export function shareCaption(lesson: Lesson, sourceName: string): string {
     takeaway(lesson),
     "",
     "Every claim in this video links to its passage in the source.",
-    `AI-generated with PaperScenes from: ${sourceLine(lesson, sourceName)}. The narration is a synthetic voice.`,
+    `AI-generated with PaperScenes from: ${sourceLine(lesson, sourceName, sourceFormat)}. The narration is a synthetic voice.`,
     "",
     tags.join(" "),
     "",

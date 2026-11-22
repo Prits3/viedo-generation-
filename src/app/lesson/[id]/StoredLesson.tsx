@@ -24,9 +24,11 @@ interface StoredFile {
   version: number;
   revision: number;
   savedAt: string;
-  provenance: { sourceKind: "pdf" | "text"; sourceName: string; sourceHash: string; provider: string; models: { fast: string; strong: string; vision: string }; promptVersion: string; voice: string; runs: Run[] };
+  provenance: { sourceKind: "pdf" | "text"; sourceFormat?: "pdf" | "text" | "docx" | "pptx"; sourceName: string; sourceHash: string; provider: string; models: { fast: string; strong: string; vision: string }; promptVersion: string; voice: string; runs: Run[] };
   totals: { calls: number; ms: number; inputTokens: number; outputTokens: number; costUsd: number | null };
   lesson: Lesson;
+  /** A bundled example: read-only, comes with its video. */
+  example?: boolean;
 }
 
 export function StoredLesson({ id }: { id: string }) {
@@ -105,11 +107,11 @@ export function StoredLesson({ id }: { id: string }) {
     <LessonExperience
       lesson={lesson}
       onRegenerate={regenerate}
-      playerExtras={<ExportVideo key={file.revision} id={id} lesson={lesson} />}
+      playerExtras={<ExportVideo key={file.revision} id={id} lesson={lesson} example={file.example} />}
       notice={
         <div className="alert alert--warn notice" role="status" data-lesson-state="stored" data-revision={file.revision}>
           <p>
-            <strong>Generated automatically from “{p.sourceName}”.</strong> Quotes were matched against the {p.sourceKind === "text" ? "pasted text" : "PDF text"} ({lesson.verification.quoteChecks.matched} of {lesson.verification.quoteChecks.total} found), but no person has
+            <strong>Generated automatically from “{p.sourceName}”.</strong> Quotes were matched against the {p.sourceFormat === "docx" ? "Word file" : p.sourceFormat === "pptx" ? "PowerPoint slides" : p.sourceKind === "text" ? "pasted text" : "PDF text"} ({lesson.verification.quoteChecks.matched} of {lesson.verification.quoteChecks.total} found), but no person has
             checked the statements. Entries marked “Unclear” need a look at the original.
             {unreadable.length > 0 && ` Pages without readable text, not covered: ${unreadable.join(", ")}.`}
           </p>
@@ -161,9 +163,11 @@ export function StoredLesson({ id }: { id: string }) {
             <Link href="/lesson/demo" className="btn btn--ghost btn--small">
               Open the fully checked example
             </Link>
-            <button type="button" className="btn btn--ghost btn--small" onClick={remove} data-action="delete-lesson">
-              Delete this lesson
-            </button>
+            {!file.example && (
+              <button type="button" className="btn btn--ghost btn--small" onClick={remove} data-action="delete-lesson">
+                Delete this lesson
+              </button>
+            )}
           </div>
         </div>
       }

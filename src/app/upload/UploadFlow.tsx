@@ -548,7 +548,7 @@ export function UploadFlow() {
         </div>
       )}
 
-      {!busy && <Library heading="Lessons on this server" />}
+      {!busy && <Library heading="Shorts and lessons" />}
     </main>
   );
 }

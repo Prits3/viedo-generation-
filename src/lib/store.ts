@@ -48,7 +48,26 @@ const ID = /^l-[a-z0-9]{8,24}$/;
 export const sha8 = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 8);
 
 export function storeDir(): string {
-  return resolve(/*turbopackIgnore: true*/ process.env.LESSON_STORE_DIR || join(/*turbopackIgnore: true*/ ".data", "lessons"));
+  // On Vercel only /tmp is writable (and it is per instance, so generated lessons there are temporary).
+  const fallback = process.env.VERCEL ? join(/*turbopackIgnore: true*/ "/tmp", "lessons") : join(/*turbopackIgnore: true*/ ".data", "lessons");
+  return resolve(/*turbopackIgnore: true*/ process.env.LESSON_STORE_DIR || fallback);
+}
+
+/**
+ * Bundled example lessons (committed, read-only): finished shorts with their narration and video,
+ * so a deployment without model key, Piper, ffmpeg or a browser still has lessons to show.
+ * The writable store wins when both hold the same ID.
+ */
+export function showcaseDir(): string {
+  return resolve(/*turbopackIgnore: true*/ process.env.LESSON_SHOWCASE_DIR || join(/*turbopackIgnore: true*/ "showcase", "lessons"));
+}
+
+export function isShowcase(id: string): boolean {
+  return validId(id) && !existsSync(/*turbopackIgnore: true*/ join(/*turbopackIgnore: true*/ storeDir(), id)) && existsSync(/*turbopackIgnore: true*/ join(/*turbopackIgnore: true*/ showcaseDir(), id));
+}
+
+function refuseShowcase(id: string): void {
+  if (isShowcase(id)) throw new GenerateError("read_only", "This is a bundled example lesson; it cannot be changed.");
 }
 
 export function newId(): string {
@@ -61,7 +80,7 @@ export function validId(id: string): boolean {
 
 function dirOf(id: string): string {
   if (!validId(id)) throw new GenerateError("not_found", "Invalid lesson ID.");
-  return join(/*turbopackIgnore: true*/ storeDir(), id);
+  return join(/*turbopackIgnore: true*/ isShowcase(id) ? showcaseDir() : storeDir(), id);
 }
 
 /** Resolves a file inside a lesson directory and refuses anything that escapes it. */
@@ -77,6 +96,7 @@ export function has(id: string, rel: string): boolean {
 }
 
 export function writeBytes(id: string, rel: string, data: Uint8Array | string): void {
+  refuseShowcase(id);
   const full = pathIn(id, rel);
   mkdirSync(/*turbopackIgnore: true*/ join(/*turbopackIgnore: true*/ full, ".."), { recursive: true });
   // Write-then-rename, so a crash never leaves a half-written checkpoint.
@@ -139,14 +159,24 @@ export interface LessonSummary {
   updatedAt: string;
   scenes?: number;
   voice?: string;
+  /** A bundled example (read-only). */
+  example?: boolean;
+}
+
+function idsIn(root: string): string[] {
+  if (!existsSync(/*turbopackIgnore: true*/ root)) return [];
+  return readdirSync(/*turbopackIgnore: true*/ root).filter((id) => validId(id) && statSync(/*turbopackIgnore: true*/ join(/*turbopackIgnore: true*/ root, id)).isDirectory());
 }
 
 export function listLessons(): LessonSummary[] {
-  const root = storeDir();
-  if (!existsSync(/*turbopackIgnore: true*/ root)) return [];
+  // There are no accounts: on a public deployment the list would show every visitor's lessons to
+  // everyone. There it lists the examples only; a visitor's own lesson stays reachable by its link.
+  // LESSON_LIST_ALL=1 lists everything anyway (a private deployment).
+  const listOwn = !process.env.VERCEL || process.env.LESSON_LIST_ALL === "1";
+  const own = listOwn ? idsIn(storeDir()) : [];
+  const examples = idsIn(showcaseDir()).filter((id) => !own.includes(id));
   const out: LessonSummary[] = [];
-  for (const id of readdirSync(/*turbopackIgnore: true*/ root)) {
-    if (!validId(id) || !statSync(/*turbopackIgnore: true*/ join(/*turbopackIgnore: true*/ root, id)).isDirectory()) continue;
+  for (const id of [...own, ...examples]) {
     const job = loadJob(id);
     if (!job) continue;
     const file = job.status === "done" ? loadLesson(id) : null;
@@ -163,13 +193,15 @@ export function listLessons(): LessonSummary[] {
       updatedAt: job.updatedAt,
       scenes: file ? scenes.length : undefined,
       voice: file?.provenance.voice,
+      ...(examples.includes(id) ? { example: true } : {}),
     });
   }
-  return out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 50);
+  // Own lessons first (newest first), then the examples.
+  return out.sort((a, b) => Number(!!a.example) - Number(!!b.example) || b.updatedAt.localeCompare(a.updatedAt)).slice(0, 50);
 }
 
 export function removeLesson(id: string): boolean {
-  if (!validId(id) || !existsSync(/*turbopackIgnore: true*/ dirOf(id))) return false;
+  if (!validId(id) || isShowcase(id) || !existsSync(/*turbopackIgnore: true*/ dirOf(id))) return false;
   rmSync(/*turbopackIgnore: true*/ dirOf(id), { recursive: true, force: true });
   return true;
 }

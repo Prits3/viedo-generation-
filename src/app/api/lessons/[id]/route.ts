@@ -1,6 +1,6 @@
 // GET    /api/lessons/:id   the stored, validated lesson file. No model is called to play it.
 // DELETE /api/lessons/:id   removes the lesson with its source, audio and figures.
-import { loadJob, loadLesson, removeLesson } from "@/lib/store";
+import { isShowcase, loadJob, loadLesson, removeLesson } from "@/lib/store";
 import { runTotals } from "@/lib/lesson-file";
 import { ERROR_TEXT } from "@/lib/limits";
 
@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const job = loadJob(id);
     return Response.json({ type: "error", code: "not_found", ...ERROR_TEXT.not_found, job: job ? { status: job.status, stage: job.stage, title: job.title ?? job.input.name } : null }, { status: 404 });
   }
-  return Response.json({ ...file, totals: runTotals(file.provenance.runs) }, { headers: { "cache-control": "no-store" } });
+  return Response.json({ ...file, totals: runTotals(file.provenance.runs), ...(isShowcase(id) ? { example: true } : {}) }, { headers: { "cache-control": "no-store" } });
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {

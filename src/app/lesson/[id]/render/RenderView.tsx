@@ -21,7 +21,7 @@ import { DuckFigure, Mascot } from "@/components/Duck";
 
 interface StoredFile {
   revision: number;
-  provenance: { sourceName: string };
+  provenance: { sourceName: string; sourceFormat?: "pdf" | "text" | "docx" | "pptx" };
   lesson: Lesson;
 }
 
@@ -251,7 +251,7 @@ export function RenderView({ id, format, maxSeconds, endCard, fromScene, at }: P
               </p>
               <p className="rv-end__line">Every claim links to its source</p>
               <p className="rv-end__title">{lesson.meta.title}</p>
-              <p className="rv-end__source">Source: {sourceLine(lesson, file.provenance.sourceName)}</p>
+              <p className="rv-end__source">Source: {sourceLine(lesson, file.provenance.sourceName, file.provenance.sourceFormat)}</p>
               <p className="rv-end__ai">AI-generated video · synthetic voice</p>
             </div>
           )}
