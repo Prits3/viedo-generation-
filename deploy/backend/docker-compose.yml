@@ -1,0 +1,39 @@
+# Backend on the VPS: FastAPI behind Caddy (automatic HTTPS).
+#   cd deploy/backend && BACKEND_HOST=api.example.com docker compose up -d --build
+# If the server already runs a Caddy on 80/443, drop the caddy service and add the
+# site block from Caddyfile to the existing one (reverse_proxy to lumina-backend:8787).
+services:
+  backend:
+    container_name: lumina-backend
+    build:
+      context: ../..
+      dockerfile: deploy/backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      MODEL: ${MODEL:-mock}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://paperscenes.netlify.app}
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - lumina-data:/data
+    expose:
+      - "8787"
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      BACKEND_HOST: ${BACKEND_HOST:?set BACKEND_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - backend
+
+volumes:
+  lumina-data:
+  caddy-data:

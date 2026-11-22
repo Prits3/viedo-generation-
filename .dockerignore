@@ -1,0 +1,16 @@
+node_modules
+.next
+.cache
+.data
+.git
+public
+showcase
+src
+scripts
+docs
+eval/out
+**/__pycache__
+**/*.pyc
+.env*
+*.db
+storage
