@@ -698,3 +698,41 @@ kbd { font: 12px/1 ui-monospace, Menlo, Consolas, monospace; background: var(--s
   .scene--milestones .scene__body { justify-content: flex-start; overflow: hidden; }
 }
 @container (max-width: 560px) { .mstones { padding: 3px 5px 3px 0; } }
+
+/* ── tutor ("Ask Layla") ── */
+.tutor { margin-top: 14px; background: var(--surface); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 10px; }
+.tutor__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tutor__head h2 { font-size: 1.05rem; margin: 0; }
+.tutor__badge { font-size: 0.75rem; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+.tutor__log { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 320px; overflow-y: auto; }
+.tutor__msg { border-radius: 12px; padding: 8px 12px; background: var(--surface-2); min-width: 0; }
+.tutor__msg p { margin: 2px 0 0; overflow-wrap: anywhere; }
+.tutor__msg--you { justify-self: end; max-width: 85%; background: color-mix(in srgb, var(--accent) 16%, var(--surface-2)); }
+.tutor__msg--layla { max-width: 100%; }
+.tutor__msg[data-kind="not_found"] { border-left: 3px solid var(--warm); }
+.tutor__who { font-size: 0.75rem; color: var(--ink-3); font-weight: 600; }
+.tutor__cites, .tutor__options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tutor__divider { text-align: center; font-size: 0.75rem; color: var(--ink-3); border-top: 1px dashed var(--line); padding-top: 4px; }
+.tutor__form { display: flex; gap: 8px; align-items: flex-end; }
+.tutor__form textarea { flex: 1 1 auto; min-width: 0; min-height: 44px; resize: vertical; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; }
+.tutor__form textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tutor__form .btn { min-height: 44px; }
+.tutor__mic { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+.tutor__mic.is-on { background: var(--warm); border-color: var(--warm); color: #fff; animation: tutor-pulse 1.2s ease-in-out infinite; }
+.tutor__mic:disabled { opacity: 0.45; cursor: not-allowed; }
+@keyframes tutor-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--warm) 35%, transparent); } }
+[data-reduced="true"] .tutor__mic.is-on { animation: none; }
+.tutor__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tutor__clear { margin-left: auto; }
+.tutor__note { color: var(--warm); font-size: 0.9rem; margin: 0; }
+.tutor__fine { font-size: 0.78rem; color: var(--ink-3); margin: 0; }
+.resume-saved { margin-bottom: 12px; max-width: 90%; white-space: normal; text-align: center; }
+
+/* ── legal pages and footer ── */
+.home__foot { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 0.9rem; }
+.home__foot a { color: var(--ink-2); }
+.legal { max-width: 760px; }
+.legal h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); margin: 18px 0 12px; }
+.legal h2 { font-size: 1.1rem; margin: 22px 0 6px; }
+.legal p, .legal address { color: var(--ink-2); font-style: normal; }
+.legal a { color: var(--accent); }

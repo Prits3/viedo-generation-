@@ -16,6 +16,7 @@ import { SourcePanel } from "./SourcePanel";
 import { CoverageMap } from "./CoverageMap";
 import { DetailSections } from "./DetailSections";
 import { VerificationBadge } from "./VerificationBadge";
+import { Tutor } from "./Tutor";
 
 interface Entry {
   scene: Scene;
@@ -182,6 +183,45 @@ export function LessonExperience({ lesson, notice, onRegenerate, playerExtras }:
   const showEndCard = inIntro && introDone && !pb.playing;
   const showStart = !pb.started;
 
+  // Remember where the viewer is, so a reload can continue at the same moment.
+  const posKey = `ll.pos.${lesson.id}`;
+  const [savedPos, setSavedPos] = useState<{ index: number; t: number } | null>(null);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(posKey);
+      const p = raw ? (JSON.parse(raw) as { index?: number; t?: number }) : null;
+      if (p && typeof p.index === "number" && typeof p.t === "number" && p.index < playlist.length && (p.index > 0 || p.t > 2)) setSavedPos({ index: p.index, t: p.t });
+    } catch {
+      /* nothing saved */
+    }
+  }, [posKey, playlist.length]);
+  const lastSave = useRef(0);
+  useEffect(() => {
+    if (!pb.started) return;
+    const now = Date.now();
+    if (pb.playing && now - lastSave.current < 2000) return;
+    lastSave.current = now;
+    try {
+      window.localStorage.setItem(posKey, JSON.stringify({ index: pb.index, t: Math.round(pb.t * 10) / 10 }));
+    } catch {
+      /* storage blocked */
+    }
+  }, [pb.started, pb.playing, pb.index, pb.t, posKey]);
+  const restorePos = () => {
+    if (!savedPos) return;
+    setIntroDone(false);
+    pb.goTo(savedPos.index, savedPos.t, false);
+    setSavedPos(null);
+  };
+  const clearLocal = () => {
+    try {
+      window.localStorage.removeItem(posKey);
+    } catch {
+      /* nothing stored */
+    }
+    setSavedPos(null);
+  };
+
   const firstOf = (chapterIndex: number) => playlist.findIndex((e) => e.chapterIndex === chapterIndex);
   const chapterScenes = playlist.map((e, i) => ({ ...e, i })).filter((e) => e.chapterIndex === entry.chapterIndex);
   const chapterTotal = chapterScenes.reduce((s, e) => s + (e.scene.duration ?? 0), 0);
@@ -279,6 +319,11 @@ export function LessonExperience({ lesson, notice, onRegenerate, playerExtras }:
                 )}
                 {showStart && (
                   <div className="overlay">
+                    {savedPos && (
+                      <button type="button" className="btn btn--primary resume-saved" onClick={restorePos} data-action="restore-position">
+                        Continue where you left off: {playlist[savedPos.index]?.scene.title} at {formatTime(savedPos.t)}
+                      </button>
+                    )}
                     <button type="button" className="bigplay" onClick={pb.play} autoFocus>
                       <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
                         <path d="M7 4.5v15l13-7.500z" fill="currentColor" />
@@ -407,6 +452,24 @@ export function LessonExperience({ lesson, notice, onRegenerate, playerExtras }:
                   )}
                 </div>
               )}
+              <Tutor
+                lessonId={lesson.id}
+                scene={scene}
+                cueIndex={step}
+                chapterIndex={entry.chapterIndex}
+                chapterTitle={inIntro ? "Intro" : lesson.chapters[entry.chapterIndex]?.title ?? ""}
+                inventory={lesson.inventory}
+                sourceKind={kind === "text" ? "text" : "pdf"}
+                muted={pb.muted}
+                pause={pb.pause}
+                resume={() => {
+                  setHeld(false);
+                  setIntroDone(false);
+                  pb.play();
+                }}
+                openSource={openSource}
+                onClear={clearLocal}
+              />
               {playerExtras}
               {!inIntro || introDone ? null : (
                 <button type="button" className="btn btn--ghost watchfull" onClick={watchFull}>

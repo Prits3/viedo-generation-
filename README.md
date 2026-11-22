@@ -172,6 +172,8 @@ Automated checks, all passing:
 | Check | Result |
 |---|---|
 | `npm run build`, `npx tsc --noEmit` | clean |
+| `npm run check:tutor` | Offline checks of the tutor on the demo lesson: why-question, evidence, simpler, open question, ambiguous reference, resume command. |
+| `npm run e2e:tutor -- http://localhost:3000` | Browser check of the tutor on desktop and phone: pause on ask, answer with page, evidence opens without moving the position, resume, reload restores position and conversation, clear data. |
 | `npm run verify:demo` | 222/222 quotes, coverage clean in both directions |
 | `npm run e2e` with `--errors` | 65/65: jury walkthrough on desktop and phone, the staged intro (street, orbit, measured surfaces), duck pose and target per sentence, identical state after seek and pace change, pause on source and continue at the same moment, keyboard incl. Escape, reduced motion, the duck covers nothing in any of the 17 scenes, broken PDF, scanned PDF, too-short text |
 | `npm run e2e` with `--upload` and `--text` | 37/37: both generations; stored as `paperscenes.lesson` v2; reopened in a fresh browser with identical scenes, assets, timings and actions and no generating request; scene jump and seek; one scene regenerated with the other scenes and their audio untouched; text run stopped during the storyboard step and resumed without repeating the inventory call; text sources shown as marked paragraphs |
@@ -219,6 +221,8 @@ A refusal by a content filter ends the run at once and removes it. A rate limit,
 
 | Command | Purpose |
 |---|---|
+| `npm run check:tutor` | Offline checks of the tutor on the demo lesson: why-question, evidence, simpler, open question, ambiguous reference, resume command. |
+| `npm run e2e:tutor -- http://localhost:3000` | Browser check of the tutor on desktop and phone: pause on ask, answer with page, evidence opens without moving the position, resume, reload restores position and conversation, clear data. |
 | `npm run verify:demo` | Checks the demo lesson against the PDF and writes the verification report. |
 | `npm run e2e -- http://localhost:3000` | Browser check of the jury walkthrough on desktop and phone, keyboard, reduced motion, mascot placement (Playwright). `--errors <dir>` adds broken and scanned PDFs. `--upload <pdf>` and `--text <file>` run real generations and check storing, reopening, interrupting, resuming and regenerating (costs tokens). |
 | `node scripts/generate.mjs <pdf, docx, pptx, txt or md>` | Runs the same pipeline from the command line and stores the lesson. `--mode short` makes the 45 to 90 second highlights (default: full lesson). `--resume <id>` continues a run. |

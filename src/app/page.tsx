@@ -79,6 +79,11 @@ export default function Home() {
         <span>Schwaab et al. (2021). The role of urban trees in reducing land surface temperatures in European cities. Nature Communications 12:6763.</span>
         <small>Open access, CC BY 4.0. The example runs from checked local data: no model call, no API key.</small>
       </div>
+      <footer className="home__foot">
+        <Link href="/privacy">Privacy</Link>
+        <Link href="/imprint">Imprint</Link>
+        <a href={REPO_URL} target="_blank" rel="noopener noreferrer">GitHub</a>
+      </footer>
     </main>
   );
 }

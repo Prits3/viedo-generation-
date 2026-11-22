@@ -66,7 +66,7 @@ export function EarlyAccess() {
         </form>
       )}
       {state.kind === "error" && <p className="early__error" role="alert">{state.message}</p>}
-      <p id="early-note" className="early__note">We only use your email to tell you about sign-in and launch news. No spam, no sharing. Ask us any time and we delete it.</p>
+      <p id="early-note" className="early__note">We only use your email to tell you about sign-in and launch news. No spam, no sharing. Ask us any time and we delete it. <a href="/privacy">Privacy notice</a></p>
     </section>
   );
 }
