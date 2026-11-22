@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 760" fill="none">
+  <defs>
+    <linearGradient id="sky" x2="1" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#122633"/><stop offset=".57" stop-color="#212f30"/><stop offset="1" stop-color="#603b30"/></linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5d6953"/><stop offset="1" stop-color="#293d35"/></linearGradient>
+    <radialGradient id="sun"><stop stop-color="#ffb871" stop-opacity=".84"/><stop offset="1" stop-color="#ffa85b" stop-opacity="0"/></radialGradient>
+    <radialGradient id="green"><stop stop-color="#9de7a6" stop-opacity=".7"/><stop offset="1" stop-color="#55caaa" stop-opacity="0"/></radialGradient>
+    <pattern id="grid" width="34" height="34" patternUnits="userSpaceOnUse"><path d="M0 34V0h34" stroke="#a9c3ba" stroke-opacity=".16"/></pattern>
+    <pattern id="windows" width="12" height="15" patternUnits="userSpaceOnUse"><path d="M3 4h6v4H3z" fill="#f5c593" fill-opacity=".38"/></pattern>
+    <g id="tower">
+      <path d="m0 0 42-23 44 23-42 23z" fill="#dca878" stroke="#ffc591" stroke-opacity=".53"/>
+      <path d="M0 0 44 23v101L0 101z" fill="#715349"/><path d="M44 23 86 0v101l-42 23z" fill="#3d3736"/>
+      <path d="M0 0 44 23v101L0 101zM44 23 86 0v101l-42 23z" fill="url(#windows)"/>
+      <path d="m13 0 29-16L72 0 43 16z" stroke="#ead1a0" stroke-opacity=".47"/>
+    </g>
+    <g id="low">
+      <path d="m0 0 32-17L68 1 35 18z" fill="#c89672" stroke="#ffc591" stroke-opacity=".53"/>
+      <path d="M0 0 35 18v36L0 36z" fill="#72544b"/><path d="M35 18 68 1v36L35 54z" fill="#4b3c38"/>
+      <path d="M0 0 35 18v36L0 36zM35 18 68 1v36L35 54z" fill="url(#windows)"/>
+    </g>
+    <g id="tree">
+      <ellipse cy="3" rx="13" ry="6" fill="#0c221b" opacity=".55"/>
+      <path d="M0 3v-16" stroke="#bdad74" stroke-width="2"/>
+      <circle cx="1" cy="-15" r="11" fill="#2c7960"/><circle cx="-4" cy="-19" r="8" fill="#59a77c"/>
+      <circle cx="1" cy="-23" r="5" fill="#87c892"/>
+    </g>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h820v760H0z"/>
+  <ellipse cx="652" cy="220" rx="340" ry="273" fill="url(#sun)" opacity=".52"/>
+  <path fill="url(#grid)" d="M0 0h820v760H0z"/>
+  <g stroke="#d1d3a6" stroke-opacity=".19">
+    <path d="M-10 481 414 195l439 257M-10 539l424-287 439 258M-10 597l424-288 439 257M-10 655l424-288 439 257"/>
+    <path d="m17 635 782-354M29 703l782-354M-31 564l782-354M-25 497l782-354"/>
+    <path d="M414 131v96M362 178h105M45 120h80m-39-40v80m622 24h60m-31-31v60" stroke-dasharray="3 6"/>
+  </g>
+  <path d="m0 440 410-235 410 236v130L412 760 0 550z" fill="#202522"/>
+  <path d="m0 440 410-235 410 236-409 236z" fill="url(#ground)" stroke="#babb82" stroke-opacity=".49" stroke-width="2"/>
+  <path d="m30 440 380-213 378 214-378 211z" stroke="#bac994" stroke-opacity=".43" stroke-dasharray="3 7"/>
+  <path d="m106 501 412-231m-297 298 413-232m-291 302 415-232M74 385l415 245M185 323l420 241M306 257l417 241" stroke="#222c2a" stroke-width="12"/>
+  <path d="m106 501 412-231m-297 298 413-232m-291 302 415-232M74 385l415 245M185 323l420 241M306 257l417 241" stroke="#b2aa91" stroke-opacity=".42" stroke-width="1" stroke-dasharray="8 8"/>
+  <ellipse cx="342" cy="438" rx="212" ry="125" fill="url(#green)" opacity=".65"/>
+  <path d="m219 439 101-58 124 67-101 59z" fill="#427b56" stroke="#8acf9c" stroke-opacity=".71"/>
+  <path d="m241 441 78-46 101 54-77 45z" stroke="#d1ba85" stroke-width="4" stroke-opacity=".72"/>
+  <path d="m287 446 29-18 49 25-29 18z" fill="#70b19e" stroke="#92d2c2"/>
+  <g>
+    <use href="#low" transform="translate(372 242) scale(.9)"/><use href="#tower" transform="translate(468 211) scale(.83)"/>
+    <use href="#low" transform="translate(285 296) scale(1.1)"/><use href="#tower" transform="translate(345 226) scale(.95)"/>
+    <use href="#tower" transform="translate(520 254) scale(1.07)"/><use href="#low" transform="translate(586 334) scale(1.1)"/>
+    <use href="#low" transform="translate(176 354) scale(1.1)"/><use href="#tower" transform="translate(210 281) scale(.83)"/>
+    <use href="#tower" transform="translate(642 282) scale(.98)"/><use href="#low" transform="translate(697 400)"/>
+    <use href="#tower" transform="translate(427 301) scale(.9)"/><use href="#low" transform="translate(484 397)"/>
+    <use href="#low" transform="translate(118 410) scale(1.2)"/><use href="#tower" transform="translate(56 366) scale(.85)"/>
+    <use href="#tower" transform="translate(572 360) scale(1.12)"/><use href="#low" transform="translate(659 467) scale(1.1)"/>
+    <use href="#low" transform="translate(158 482) scale(.96)"/><use href="#tower" transform="translate(186 436) scale(.75)"/>
+    <use href="#tower" transform="translate(464 403) scale(1.12)"/><use href="#low" transform="translate(526 539)"/>
+    <use href="#tower" transform="translate(318 481) scale(.88)"/><use href="#low" transform="translate(387 566) scale(1.05)"/>
+  </g>
+  <g>
+    <use href="#tree" x="318" y="408"/><use href="#tree" x="296" y="421"/><use href="#tree" x="274" y="433"/>
+    <use href="#tree" x="339" y="420"/><use href="#tree" x="361" y="431"/><use href="#tree" x="381" y="443"/>
+    <use href="#tree" x="279" y="458"/><use href="#tree" x="298" y="469"/><use href="#tree" x="320" y="481"/>
+    <use href="#tree" x="364" y="480"/><use href="#tree" x="385" y="469"/><use href="#tree" x="404" y="457"/>
+    <use href="#tree" x="126" y="498"/><use href="#tree" x="146" y="510"/><use href="#tree" x="169" y="522"/>
+    <use href="#tree" x="605" y="483"/><use href="#tree" x="625" y="495"/><use href="#tree" x="646" y="506"/>
+    <use href="#tree" x="552" y="414"/><use href="#tree" x="525" y="429"/><use href="#tree" x="726" y="468"/>
+  </g>
+  <g stroke="#bdefb9">
+    <circle cx="333" cy="443" r="35" stroke-opacity=".34" stroke-dasharray="3 4"/><circle cx="333" cy="443" r="4" fill="#c3ffbc"/>
+    <path d="M333 405v-58l-40-32h-83" stroke-opacity=".75"/>
+    <path d="M211 321h-5v-12h5"/>
+  </g>
+  <g stroke="#ffcc92" stroke-opacity=".83"><path d="M622 346v-89l37-31h75"/><circle cx="622" cy="346" r="4" fill="#ffcc92"/></g>
+</svg>

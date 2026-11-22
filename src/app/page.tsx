@@ -3,6 +3,7 @@ import { Library } from "@/components/Library";
 import { EarlyAccess } from "@/components/EarlyAccess";
 import { DuckFigure } from "@/components/Duck";
 import { BRAND, REPO_URL } from "@/lib/brand";
+import "./landing.css";
 
 function GitHubMark() {
   return (
@@ -14,36 +15,37 @@ function GitHubMark() {
 
 export default function Home() {
   return (
-    <main className="home">
-      <header className="home__top">
+    <main className="home cinema-home">
+      <header className="cinema-nav">
         <Link href="/" className="brand">
           <i aria-hidden="true" /> {BRAND}
         </Link>
-        <a href={REPO_URL} className="btn btn--small btn--ghost" target="_blank" rel="noopener noreferrer" data-action="github">
-          <GitHubMark /> Star on GitHub
-        </a>
+        <nav aria-label="Main navigation">
+          <Link href="/upload" data-action="upload">Try an upload</Link>
+          <a href="#early-access">Early access</a>
+        </nav>
       </header>
-      <section className="hero">
-        <div className="hero__text">
-          <h1>Watch the paper. Check every claim.</h1>
-          <p className="lead">
-            {BRAND} turns a paper, a document, a slide deck or a text into a one-minute short or a full narrated, visual lesson, guided by Layla, a small robot duck. You set the pace, the sound, the captions and the amount of motion.
-            Every statement links straight to its passage in the original.
-          </p>
+      <section className="cinema-hero" aria-labelledby="landing-title">
+        <div className="cinema-intro">
+          <p className="cinema-kicker"><span aria-hidden="true" /> Research, in motion</p>
+          <h1 id="landing-title">Watch the paper.<br />Check the source.</h1>
+          <p className="cinema-lead">Turn dense papers, documents and slides into narrated visual lessons. Jump from a scene straight to the evidence behind it.</p>
+          <EarlyAccess />
         </div>
-        <svg className="hero__duck" viewBox="0 0 120 132" role="presentation" focusable="false">
-          <DuckFigure pose="wow" aim={-12} />
-        </svg>
-        <div className="hero__actions">
-          <Link href="/lesson/demo" className="btn btn--primary" data-action="try-example">
-            <strong>Try an example</strong>
-            <small>Urban trees and heat in 293 European cities</small>
+        <figure className="cinema-frame">
+          <div className="cinema-frame__art" aria-hidden="true" />
+          <span className="cinema-frame__tag">Illustrated lesson</span>
+          <svg className="cinema-frame__duck" viewBox="0 0 120 132" aria-hidden="true" focusable="false">
+            <DuckFigure pose="wow" aim={-12} />
+          </svg>
+          <figcaption className="cinema-frame__caption">
+            <strong>How do trees cool a city?</strong>
+            <small>Urban heat in 293 European cities</small>
+          </figcaption>
+          <Link href="/lesson/demo" className="cinema-play" data-action="try-example" aria-label="Play the example lesson: How do trees cool a city?">
+            <span aria-hidden="true">▶</span> <span>Play example</span>
           </Link>
-          <Link href="/upload" className="btn" data-action="upload">
-            <strong>Drop in a file</strong>
-            <small>PDF, Word, PowerPoint or text: a one-minute short or a full lesson</small>
-          </Link>
-        </div>
+        </figure>
       </section>
       <ul className="features">
         <li>
@@ -64,7 +66,6 @@ export default function Home() {
         </li>
       </ul>
       <Library heading="Shorts and lessons" />
-      <EarlyAccess />
       <section className="repo" aria-labelledby="repo-title">
         <div>
           <h2 id="repo-title">Built in the open</h2>

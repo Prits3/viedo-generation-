@@ -3,7 +3,7 @@
 // visitor on the list for when sign-in opens. Submissions are stored in Supabase `public.waitlist`
 // via the REST API using the PUBLISHABLE (anon) key and the table's insert-only RLS policy — this
 // works on serverless/Vercel. Reads are blocked for this key, so the list is never exposed.
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type State = { kind: "idle" | "sending" | "done" | "exists" } | { kind: "error"; message: string };
 
@@ -15,11 +15,14 @@ export function EarlyAccess() {
   const [email, setEmail] = useState("");
   const [trap, setTrap] = useState("");
   const [state, setState] = useState<State>({ kind: "idle" });
+  const emailField = useRef<HTMLInputElement>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (state.kind === "sending") return;
     const value = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
+      emailField.current?.focus();
       return setState({ kind: "error", message: "Please enter a valid email address." });
     }
     if (trap) return setState({ kind: "done" }); // honeypot filled: a bot, pretend success
@@ -52,27 +55,27 @@ export function EarlyAccess() {
   const settled = state.kind === "done" || state.kind === "exists";
 
   return (
-    <section className="early" aria-labelledby="early-title">
+    <section className="early" id="early-access" aria-labelledby="early-title">
       <div>
         <h2 id="early-title">Get early access</h2>
-        <p>Accounts with your own library are coming. Leave your email and we tell you when sign-in opens.</p>
+        <p>Be first to hear when your own lesson library opens.</p>
       </div>
       {settled ? (
         <p className="early__done" role="status" data-state="signup-done">
           {state.kind === "done" ? "You’re signed up!" : "You’re already signed up."}
         </p>
       ) : (
-        <form className="early__form" onSubmit={submit} noValidate>
+        <form className="early__form" method="post" onSubmit={submit} noValidate>
           <label htmlFor="early-email" className="sr-only">Email address</label>
-          <input id="early-email" type="email" name="email" autoComplete="email" inputMode="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required aria-invalid={state.kind === "error"} aria-describedby="early-note" />
+          <input ref={emailField} id="early-email" type="email" name="email" autoComplete="email" inputMode="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required aria-invalid={state.kind === "error"} aria-describedby={state.kind === "error" ? "early-note early-error" : "early-note"} />
           <input className="early__trap" type="text" name="bot-field" tabIndex={-1} autoComplete="off" aria-hidden="true" value={trap} onChange={(e) => setTrap(e.target.value)} />
           <button type="submit" className="btn btn--primary" disabled={state.kind === "sending"} data-action="signup">
-            {state.kind === "sending" ? "Sending…" : "Notify me"}
+            {state.kind === "sending" ? "Joining…" : "Join waitlist"}
           </button>
         </form>
       )}
-      {state.kind === "error" && <p className="early__error" role="alert">{state.message}</p>}
-      <p id="early-note" className="early__note">We only use your email to tell you about sign-in and launch news. No spam, no sharing. Ask us any time and we delete it. <a href="/privacy">Privacy notice</a></p>
+      {state.kind === "error" && <p id="early-error" className="early__error" role="alert">{state.message}</p>}
+      <p id="early-note" className="early__note">Sign-in and launch news only. Ask us anytime to delete your email. <a href="/privacy">Privacy notice</a></p>
     </section>
   );
 }
