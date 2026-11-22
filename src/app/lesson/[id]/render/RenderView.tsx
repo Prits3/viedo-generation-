@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import type { Lesson } from "@/lib/types";
 import { stateAt } from "@/lib/actions";
+import { citedMeasurement, prepareVideoScene } from "@/lib/comparison-evidence";
 import { locLabel } from "@/lib/labels";
 import { captionAt, frameTime, planVideo, positionAt, scenesWithoutNarration, sourceChip, VIDEO_FORMATS, type VideoFormat, type VideoPlan } from "@/lib/video-plan";
 import { sourceLine } from "@/lib/share-caption";
@@ -193,6 +194,19 @@ export function RenderView({ id, format, maxSeconds, endCard, fromScene, at }: P
     return { item: (ref: string | undefined) => (ref ? byId.get(ref) : undefined), openSource: () => {}, loc: (n: number) => locLabel(kind, n) };
   }, [file]);
 
+  const scenes = useMemo(() => {
+    const byId = new Map((file?.lesson.inventory ?? []).map((item) => [item.id, item]));
+    return (plan?.scenes ?? []).map(({ scene }) => {
+      const prepared = prepareVideoScene(scene, byId);
+      const rows = prepared.comparison?.rows;
+      const metricTiles = format === "vertical" && rows?.length === 2 && rows.every((row) => {
+        const measure = citedMeasurement(byId.get(row.ref));
+        return measure && measure.from === measure.to;
+      });
+      return { scene: prepared, metricTiles };
+    });
+  }, [file, format, plan]);
+
   const frameStyle = { width: size.cssWidth, height: size.cssHeight };
   if (problem || !file || !plan)
     return (
@@ -203,7 +217,7 @@ export function RenderView({ id, format, maxSeconds, endCard, fromScene, at }: P
 
   const { lesson } = file;
   const pos = positionAt(plan, T);
-  const scene = plan.scenes[pos.index].scene;
+  const { scene, metricTiles } = scenes[pos.index];
   const state = stateAt(scene, pos.t);
   const cue = state.step >= 0 ? scene.cues[state.step] : undefined;
   const caption = pos.ended ? null : captionAt(cue, pos.t, size.captionChars);
@@ -216,7 +230,7 @@ export function RenderView({ id, format, maxSeconds, endCard, fromScene, at }: P
   return (
     <LessonContext.Provider value={ctx}>
       <div className={`rv rv--${format}`} style={frameStyle} data-reduced="false" data-render-state="ready" data-scene={scene.id} data-step={state.step} data-ended={pos.ended ? "true" : "false"}>
-        <div className="stage rv-stage" data-scene-type={scene.type} data-repeated-head={repeatedHead ? "true" : undefined}>
+        <div className="stage rv-stage" data-scene-type={scene.type} data-metric-tiles={metricTiles ? "true" : undefined} data-repeated-head={repeatedHead ? "true" : undefined}>
           <SceneView key={scene.id} scene={scene} state={state} reduced={false} />
           {scene.type !== "establishing" && <Mascot pose={state.mascot.pose} target={state.mascot.target} sceneKey={`${scene.id}:${lesson.id}`} />}
           <div className="rv-top">

@@ -2,6 +2,7 @@
 // A scene that fails is repaired once by the fast model and checked again; if it still fails
 // it stays in the lesson, visibly flagged, and can be regenerated on its own.
 import type { InventoryItem, Scene } from "./types.ts";
+import { chartFindings } from "./comparison-evidence.ts";
 import { sceneRefs } from "./coverage.ts";
 
 /** Numbers as written, normalised: "8-12" -> ["8","12"], "3,4" -> "3.4". */
@@ -37,10 +38,7 @@ export function checkScene(scene: Scene, byId: Map<string, InventoryItem>, extra
       if (missing.length) problems.push(`Sentence ${k + 1} says ${missing.join(", ")}, which is not in the passages it cites (${cue.refs.join(", ") || "none"}).`);
     }
   });
-  for (const row of scene.comparison?.rows ?? []) {
-    const missing = digits(row.display).filter((n) => !haystack([byId.get(row.ref)]).has(n));
-    if (missing.length) problems.push(`Chart value "${row.display}" does not match the passage of ${row.ref}.`);
-  }
+  for (const f of chartFindings(scene, byId)) problems.push(`${f.code}${f.ref ? ` (${f.ref})` : ""}: ${f.action}`);
   for (const m of scene.milestones?.items ?? []) {
     // Only real dates and measurements are checked; "Step 2" is an order label, not a claim.
     const missing = digits(m.tag).filter((n) => (n.length >= 3 || n.includes(".")) && !haystack([byId.get(m.ref ?? "")]).has(n));

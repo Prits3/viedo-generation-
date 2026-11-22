@@ -116,7 +116,7 @@ const SCENE_RULES = `Scene types, chosen by what the content is:
 - "points": 2-5 cards for parallel aspects, reasons or caveats.
 - "flow": 3-5 ordered steps of a method or process.
 - "milestones": 3-6 dated or ordered events on a line; put the date in the card's tag.
-- "comparison": 2-4 numbers on one shared scale. Only for values the source states in the same unit; each row cites the inventory entry containing that number, and the basis says what is compared with what.
+- "comparison": 2-4 comparable measurements on one shared scale. Use this instead of a statement when the main point is a contrast between measurements. Each row cites a matched inventory quantity whose quote names that group and its one measurement. Use the quoted group or its unambiguous short label, not a paraphrase or another group's label. Copy the measured value and unit, not a date, time, index or sample size. For a scalar, from and to both equal that value; for a range, use the two quoted endpoints. Compare part-of-total counts only with the same total. Display the value and unit. Never make up a range for qualitative text; use points or flow instead. The basis states the shared conditions.
 
 Each scene answers one question. Each cue is one spoken sentence in plain language, and its refs list the inventory entries that back it. A number may only be spoken in a cue that cites the entry containing that number. Use connective cues only for transitions that make no claim. Set each cue's focus to the key of the card or row it talks about, so the picture follows the voice; cards and rows appear when they are first in focus.
 
@@ -161,7 +161,7 @@ export async function buildStoryboard(meta: { title: string; sourceType: string;
 const SHORT_SYSTEM = `You direct a very short narrated, visual summary of one source: ${SHORT.minSeconds} to ${SHORT.maxSeconds} seconds, also shown as a vertical video on a phone. A viewer who watches only this should know the most important things the source says. You receive the entries of the source's content inventory that matter most: every entry has an ID, a plain statement, its exact quote and its location. Build the scenes only from these entries.
 
 Write ${SHORT.maxScenes - 1} or ${SHORT.maxScenes} scenes in this order:
-1. The hook, one scene: a question the source answers, or its most surprising number. It must make someone want the answer, and it must come from the source like everything else.
+1. The hook, one scene: open on a short, specific question the source answers. Give the first useful answer in the very next scene. No preamble.
 2. The four or five most important points, one scene each, ordered so that each follows from the one before. Choose what a reader must not miss: the main findings or facts, the numbers that carry them, and the one caveat that changes how to read them. Leave out background, method details and anything minor.
 3. One closing scene: the single takeaway, the sentence a viewer should still know tomorrow.
 
@@ -173,18 +173,11 @@ ${SCENE_RULES}
 
 In this short form, "question" is the hook; prefer "statement" for a point (the headline is the point itself, as a full short sentence); use "comparison" when the source gives two or three numbers in the same unit; use "points", "flow" or "milestones" only with exactly 3 cards, and not for more than two scenes. Do not use the same scene type for every point.
 
+The phone screen needs one dominant visual in each scene: a measurement pair, an ordered sequence, or one short claim. Let the next focused element explain the next sentence. Do not put the same sentence in both the heading and a card, and do not add movement just to fill time.
+
 ${FAITHFUL} Never use an entry marked UNCLEAR for a spoken claim. Every sentence is checked automatically against the quotes it cites, and a sentence that fails is cut. Write numbers, times, dates and units exactly as the quote has them ("15:00" stays "15:00" and does not become "3 pm"; "about 3 °C" keeps its "about"), and never say a number that is not in a quote you cite. Do not sharpen the source to make the hook or a headline stronger: where the source says "indicated", "suggested" or "about", the narration and the text on screen say so too, and no sentence adds an evaluation ("changed everything", "forever") the source does not make.
 
 ${DATA_RULE}`;
-
-/**
- * A "comparison" whose rows are not numbers has nothing to draw bars from; its rows are shown as
- * cards instead. Keys stay the same, so the sentences still point at them.
- */
-function rowsAsCards(s: SceneDraft): SceneDraft {
-  if (s.type !== "comparison" || s.rows.every((r) => /\d/.test(r.display))) return s;
-  return { ...s, type: "points", cards: s.rows.slice(0, 3).map((r) => ({ key: r.key, tag: "", title: r.label, body: r.display, icon: "scale" as const, ref: r.ref })), rows: [] };
-}
 
 /**
  * The storyboard of a short. It comes back in the shape of a full storyboard (every scene in the
@@ -203,7 +196,7 @@ export async function buildShortStoryboard(meta: { title: string; sourceType: st
   });
   // An analogy is a second text on screen and a second thing to check; a short does without.
   // A scene the model left untitled is named after what it shows.
-  return { draft: { intro_scenes: data.scenes.map((s) => ({ ...rowsAsCards(s), analogy: "", title: s.title.trim() || s.headline.trim() || s.question.trim() })), chapters: [] }, run };
+  return { draft: { intro_scenes: data.scenes.map((s) => ({ ...s, analogy: "", title: s.title.trim() || s.headline.trim() || s.question.trim() })), chapters: [] }, run };
 }
 
 // ───────────────────────── repair / regenerate one scene ─────────────────────────

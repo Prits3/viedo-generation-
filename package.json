@@ -21,6 +21,9 @@
     "check:shorts": "node scripts/check-shorts.mjs",
     "export:video": "node scripts/export-video.mjs",
     "check:export": "node scripts/check-export.mjs",
+    "check:video-quality": "node scripts/video-quality.mjs",
+    "test:video-quality": "node --test scripts/video-quality.test.mjs scripts/video-scene.test.mjs",
+    "video:scene": "node scripts/video-scene.mjs",
     "check:tutor": "node scripts/check-tutor.mjs",
     "e2e:tutor": "node scripts/e2e-tutor.mjs"
   },

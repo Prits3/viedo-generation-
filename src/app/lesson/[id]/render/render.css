@@ -16,9 +16,25 @@
 /* Question card: the duck stands in the top right corner and the headline starts below it, so a
    long headline can never run under the duck. */
 .rv--vertical .rv-stage[data-scene-type="question"] > .mascot { top: calc(var(--safe-top) + 24px); right: calc(var(--safe-right) + 6px); bottom: auto; width: 88px; }
-.rv--vertical .qcard { padding: 84px 4px 0; background: none; align-content: start; gap: 12px; }
+.rv--vertical .qcard { padding: 78px 4px 0; background: none; align-content: start; gap: 12px; }
 .rv--vertical .qcard__kicker { max-width: calc(100% - 110px); }
 .rv--vertical .qcard__headline { font-size: 2.3rem; }
+/* A hook must be readable on the first frame, including in autoplay thumbnails. */
+.rv--vertical .qcard .qcard__headline span, .rv--vertical .qcard.is-on .qcard__headline span { opacity: 1; transform: none; animation: none; }
+/* Two comparable scalars: stage the evidence, not a miniature desktop chart. */
+.rv--vertical [data-metric-tiles="true"] .cmp { display: grid; gap: 10px; }
+.rv--vertical [data-metric-tiles="true"] .cmp__rows { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.rv--vertical [data-metric-tiles="true"] .cmp__row { display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 6px; min-height: 116px; padding: 9px; border: 1px solid var(--line); border-radius: 12px; background: #131d30; }
+.rv--vertical [data-metric-tiles="true"] .cmp__row.is-off { opacity: 0.65; transform: none; }
+.rv--vertical [data-metric-tiles="true"] .cmp__row.is-off .cmp__value { visibility: hidden; }
+.rv--vertical [data-metric-tiles="true"] .cmp__row.is-dim:not(.is-off) { opacity: 0.85; }
+.rv--vertical [data-metric-tiles="true"] .cmp__row.is-focus { border-color: var(--accent); }
+.rv--vertical [data-metric-tiles="true"] .cmp__label { font-size: 14px; overflow-wrap: anywhere; }
+.rv--vertical [data-metric-tiles="true"] .cmp__track, .rv--vertical [data-metric-tiles="true"] .cmp__ticks { display: none; }
+.rv--vertical [data-metric-tiles="true"] .cmp__value { padding: 3px 0; border: 0; background: none; }
+.rv--vertical [data-metric-tiles="true"] .cmp__value strong { font-size: clamp(18px, 8cqw, 27px); overflow-wrap: anywhere; }
+.rv--vertical [data-metric-tiles="true"] .cmp__basis { margin: 0; }
+.rv--vertical [data-metric-tiles="true"] .cmp__axis-title { font-size: 13px; }
 /* Room for the emphasised card (it grows a little) inside the clipped list, and earlier cards stay readable. */
 .rv--vertical .mstones { padding: 4px 10px 4px 2px; }
 .rv .scene[data-shot="close"] .is-dim { opacity: 0.5; }
