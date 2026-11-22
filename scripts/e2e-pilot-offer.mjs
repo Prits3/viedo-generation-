@@ -9,14 +9,15 @@ import { setTimeout as pause } from "node:timers/promises";
 import { expect } from "playwright/test";
 import { launchBrowser } from "./browser.mjs";
 
-const testLink = "https://buy.stripe.com/test_PilotFixtureOnly";
+const testLink = process.env.PILOT_E2E_TEST_LINK ?? "https://buy.stripe.com/test_PilotFixtureOnly";
+const testPrice = process.env.PILOT_E2E_TEST_PRICE;
 const liveLink = "https://buy.stripe.com/PilotFixtureOnly";
 const next = resolve("node_modules/next/dist/bin/next");
 const evidence = resolve(process.env.PILOT_SCREENSHOTS_DIR ?? ".cache/pilot-offer");
 const common = Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^(?:PILOT_|LEGAL_|AWS_|BEDROCK_|ANTHROPIC_|CONTEXT$)/i.test(name)));
 const cases = [
   { name: "hidden", context: "production", link: null, env: {} },
-  { name: "preview", context: "deploy-preview", link: testLink, env: { PILOT_STRIPE_TEST_LINK: testLink } },
+  { name: "preview", context: "deploy-preview", link: testLink, env: { PILOT_STRIPE_TEST_LINK: testLink, ...(testPrice ? { PILOT_PRICE: testPrice } : {}) } },
   { name: "approved-fixture", context: "production", link: liveLink, env: {
     PILOT_STRIPE_LIVE_LINK: liveLink,
     PILOT_LIVE_APPROVED: "true",
@@ -84,11 +85,14 @@ async function checkPage(browser, base, scenario, screen) {
     await expect(demo).toBeVisible();
     await expect(early).toBeVisible();
     if (scenario.link) {
+      await expect(card.getByText("LearnLayla – Your PDF, Explained", { exact: true })).toBeVisible();
+      await expect(card.getByText(/short narrated MP4/)).toBeVisible();
+      await expect(card.getByText("One-time purchase, no subscription.")).toBeVisible();
       const testMode = scenario.context === "deploy-preview";
       await expect(card).toHaveAttribute("data-pilot-mode", testMode ? "test" : "live");
       if (testMode) {
         await expect(card.getByText(/Test checkout only\. No real payment, PDF submission or delivery/)).toBeVisible();
-        await expect(card.getByText(/€5\.00 \(test price\)/)).toBeVisible();
+        await expect(card.getByText(testPrice ?? "€5.00 (test price)", { exact: true })).toBeVisible();
         await expect(card.getByText(/3 business days.*test estimate/)).toBeVisible();
         await expect(card.getByText(/verify payment, then email PDF submission instructions/)).toBeVisible();
       } else {

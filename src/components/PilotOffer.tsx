@@ -9,8 +9,10 @@ export function PilotOffer() {
   return (
     <section className="pilot" aria-labelledby="pilot-title" data-pilot-mode={offer.mode}>
       <div className="pilot__intro">
+        <span className="chip">LearnLayla – Your PDF, Explained</span>
         <h2 id="pilot-title">Turn your PDF into a learning video</h2>
-        <p>Get a short MP4 with source references from your PDF. We prepare it for you and deliver it by email.</p>
+        <p>Make a long PDF easier to learn from. We turn one PDF you provide into a short narrated MP4 that explains the key points and shows where they come from in your document.</p>
+        <p className="pilot__purchase">One-time purchase, no subscription.</p>
         {offer.mode === "test" && <p className="pilot__test">Test checkout only. No real payment, PDF submission or delivery.</p>}
       </div>
       <dl className="pilot__details">

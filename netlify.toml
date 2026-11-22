@@ -6,9 +6,11 @@
 [build.environment]
   NODE_VERSION = "22"
 
-# Set pilot variables in Netlify's UI with contextual Builds values, not here.
 # Next prerenders the homepage during this build using Netlify's CONTEXT.
-# See docs/PILOT-ORDERS.md for the separate test and live settings.
+# This public sandbox link is available only in PR previews. Keep all live settings in the UI.
+[context.deploy-preview.environment]
+  PILOT_STRIPE_TEST_LINK = "https://buy.stripe.com/test_9B66oGfOD2vT4Lw9Wm7IY00"
+  PILOT_PRICE = "€4.99 (test price)"
 
 # The example videos are larger than a function response may be, so they are served as static
 # files copied to public/showcase/ at build time (scripts/copy-showcase-videos.mjs).

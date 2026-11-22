@@ -8,9 +8,9 @@ Go to **Project configuration → Environment variables**. Scope the variables t
 
 | Variable | Deploy Previews | Production |
 | --- | --- | --- |
-| `PILOT_STRIPE_TEST_LINK` | Required: official Dashboard sandbox Payment Link on `https://buy.stripe.com` with a `/test_…` path | Leave blank; ignored |
+| `PILOT_STRIPE_TEST_LINK` | Set in `netlify.toml`: official Dashboard sandbox Payment Link on `https://buy.stripe.com` with a `/test_…` path | Leave blank; ignored |
 | `PILOT_STRIPE_LIVE_LINK` | Leave blank; ignored | Required: reviewed Stripe live Payment Link on `https://buy.stripe.com` with one non-test path segment |
-| `PILOT_PRICE` | Optional: use actual sandbox price if available; otherwise display a labelled €5.00 placeholder | Required: approved one-time total, including currency and applicable taxes/fees; must match Checkout |
+| `PILOT_PRICE` | Set to the sandbox price (€4.99) in `netlify.toml`; update it together with the link. Without a configured price, a labelled test placeholder is shown. | Required: approved one-time total, including currency and applicable taxes/fees; must match Checkout |
 | `PILOT_DELIVERY` | Optional: otherwise a labelled three-business-day example | Required: approved delivery window, including when it starts |
 | `PILOT_PDF_HANDOFF` | Optional: test-only instructions; do not ask for a real PDF | Required: approved instructions for how the team will request and securely receive the PDF after verifying payment |
 | `PILOT_ORDER_INFO_URL` | Leave blank; ignored | Required: HTTPS URL to reviewed pre-contract and order privacy information for this offer |
@@ -26,7 +26,7 @@ Without a valid link for the current context the section is hidden. In productio
 ## Stripe setup and preview acceptance
 
 1. In Stripe **sandbox mode**, create a Payment Link for one product and a fixed **one-time price**; quantity 1 with quantity adjustment off. Collect the buyer's email through Checkout. Don't request the PDF or sensitive data in Stripe. Use card-only for the pilot if practical to avoid delayed payment methods.
-2. Set the sandbox URL in **Deploy Previews** and use a Netlify PR preview build. Check the Test banner, price and CTA at desktop and mobile widths. Open the CTA, verify the Stripe sandbox, then complete a successful transaction with a [Stripe test card](https://docs.stripe.com/testing#cards) and dummy data. Check the paid status in the **sandbox** Dashboard. Start a separate checkout and cancel or go back; this must not be treated as paid. Check the example lesson and early-access form again in the preview without submitting real personal data.
+2. Use a Netlify PR preview build with the sandbox URL and matching price set in `[context.deploy-preview.environment]` in `netlify.toml`. Check the Test banner, price and CTA at desktop and mobile widths. Open the CTA, verify the Stripe sandbox, then complete a successful transaction with a [Stripe test card](https://docs.stripe.com/testing#cards) and dummy data. Check the paid status in the **sandbox** Dashboard. Start a separate checkout and cancel or go back; this must not be treated as paid. Check the example lesson and early-access form again in the preview without submitting real personal data.
 3. Use Stripe's hosted confirmation page. If you configure a return to the landing page instead, don't add payment or session data to the URL and don't show a paid message there. A redirect, customer's screenshot or email receipt isn't the team's source of truth.
 
 ## Manual fulfillment

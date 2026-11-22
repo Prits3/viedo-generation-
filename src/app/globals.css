@@ -121,8 +121,10 @@ kbd { font: 12px/1 ui-monospace, Menlo, Consolas, monospace; background: var(--s
 .early .early__note { flex-basis: 100%; font-size: 0.85rem; color: var(--ink-3); }
 
 .pilot { margin-top: 32px; display: grid; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; overflow-wrap: anywhere; }
+.pilot__intro .chip { margin-bottom: 8px; white-space: normal; }
 .pilot h2 { font-size: 1.25rem; margin-bottom: 4px; text-wrap: balance; }
 .pilot p, .pilot dd { color: var(--ink-2); }
+.pilot__purchase { margin-top: 4px; }
 .pilot .pilot__test { color: var(--warn); font-weight: 600; margin-top: 8px; }
 .pilot__details { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px 24px; }
 .pilot dt { font-weight: 700; }
