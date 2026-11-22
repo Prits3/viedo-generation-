@@ -1,24 +1,22 @@
 "use client";
 
-// Early-access waitlist form. Inserts directly into Supabase `public.waitlist`
-// from the browser using the publishable (anon) key, relying on the table's
-// pre-configured Row Level Security insert policy. No numbers are read back or shown.
+// Signup / free-trial CTA — FRONTEND ONLY.
+//
+// The backend (authentication, user accounts, database) is not wired yet. This form
+// validates input and shows a confirmation so the signup experience is visually
+// functional, but it does NOT store anything anywhere. The wiring is pending — Trung
+// will connect accounts + database later. No data is saved and no numbers are shown.
 
 import { useState } from "react";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
 
-type Status = "idle" | "submitting" | "done" | "error" | "duplicate";
+type Status = "idle" | "done";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-const SUCCESS_MSG = "You’re on the list. We’ll let you know when your LearnLayla access is ready.";
-const DUPLICATE_MSG = "You’re already on the list.";
-const ERROR_MSG = "Something went wrong. Please try again.";
-
 export function Waitlist({
   source = "landing_page",
-  heading = "Get early access",
-  blurb = "Be the first to turn your resources into lessons. Join the early-access list.",
+  heading = "Start your free trial",
+  blurb = "Create your LearnLayla account and turn your first resources into lessons.",
 }: {
   source?: string;
   heading?: string;
@@ -29,54 +27,33 @@ export function Waitlist({
   const [status, setStatus] = useState<Status>("idle");
   const [fieldError, setFieldError] = useState<string | null>(null);
 
-  async function submit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (status === "submitting") return;
-
     const normalised = email.trim().toLowerCase();
     if (!EMAIL_RE.test(normalised) || normalised.length > 254) {
       setFieldError("Please enter a valid email address.");
       return;
     }
+    // Backend not connected yet — do not send anywhere. Just confirm visually.
     setFieldError(null);
-    setStatus("submitting");
-
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      setStatus("error");
-      return;
-    }
-
-    const { error } = await supabase
-      .from("waitlist")
-      .insert({ email: normalised, source, marketing_consent: consent });
-
-    if (!error) {
-      setStatus("done");
-      setEmail("");
-      setConsent(false);
-    } else if (error.code === "23505") {
-      // unique_violation → email already present
-      setStatus("duplicate");
-    } else {
-      setStatus("error");
-    }
+    setStatus("done");
   }
 
-  if (status === "done" || status === "duplicate") {
+  if (status === "done") {
     return (
       <section className="waitlist" aria-labelledby="waitlist-heading">
         <div className="waitlist__text">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/learnlayla-logo.png" alt="LearnLayla" className="waitlist__mascot" width={64} height={64} />
           <h2 id="waitlist-heading">{heading}</h2>
         </div>
         <p className="waitlist__done" role="status">
-          ✓ {status === "done" ? SUCCESS_MSG : DUPLICATE_MSG}
+          ✓ Thanks for your interest! Account sign-up isn’t live yet — we’ll open it shortly.
         </p>
+        <p className="waitlist__pending">Signup backend is being connected. No account was created and nothing was saved.</p>
       </section>
     );
   }
-
-  const submitting = status === "submitting";
 
   return (
     <section className="waitlist" aria-labelledby="waitlist-heading">
@@ -87,7 +64,7 @@ export function Waitlist({
         <p>{blurb}</p>
       </div>
 
-      <form className="waitlist__form" onSubmit={submit} noValidate>
+      <form className="waitlist__form" onSubmit={submit} data-source={source} noValidate>
         <div className="waitlist__row">
           <label className="sr-only" htmlFor="waitlist-email">
             Email address
@@ -106,37 +83,28 @@ export function Waitlist({
             onChange={(e) => {
               setEmail(e.target.value);
               if (fieldError) setFieldError(null);
-              if (status === "error") setStatus("idle");
             }}
-            disabled={submitting}
           />
-          <button type="submit" className="btn btn--primary" disabled={submitting}>
-            {submitting ? "Joining…" : "Join early access"}
+          <button type="submit" className="btn btn--primary">
+            Start free trial
           </button>
         </div>
 
         <label className="waitlist__consent">
-          <input
-            type="checkbox"
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            disabled={submitting}
-          />
+          <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
           <span>Send me occasional LearnLayla updates.</span>
         </label>
 
         <p className="waitlist__hint" id="waitlist-hint">
           Early-access updates only. No spam.
         </p>
+        <p className="waitlist__pending" aria-live="polite">
+          ⚙︎ Backend wiring pending — accounts &amp; database to be connected by Trung.
+        </p>
 
         {fieldError && (
           <p className="waitlist__error" id="waitlist-error" role="alert">
             {fieldError}
-          </p>
-        )}
-        {status === "error" && (
-          <p className="waitlist__error" role="alert">
-            {ERROR_MSG}
           </p>
         )}
       </form>

@@ -611,7 +611,7 @@ kbd { font: 12px/1 ui-monospace, Menlo, Consolas, monospace; background: var(--s
 .waitlist__done { color: var(--ok); font-weight: 600; }
 .waitlist__error { color: var(--bad); font-size: 0.9rem; }
 
-/* waitlist: consent + hint (added for Supabase early-access form) */
+/* signup/free-trial CTA: consent + hint */
 .waitlist__row { display: flex; flex-wrap: wrap; gap: 10px; }
 .waitlist__consent { display: flex; align-items: flex-start; gap: 8px; color: var(--ink-2); font-size: 0.9rem; cursor: pointer; }
 .waitlist__consent input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
@@ -620,3 +620,6 @@ kbd { font: 12px/1 ui-monospace, Menlo, Consolas, monospace; background: var(--s
 /* LearnLayla brand logo + mascot */
 .brand__logo { width: 36px; height: 36px; object-fit: contain; border-radius: 8px; }
 .waitlist__mascot { width: 64px; height: 64px; object-fit: contain; display: block; margin-bottom: 4px; }
+
+/* signup/free-trial CTA: backend-pending note */
+.waitlist__pending { color: var(--warn); font-size: 0.8rem; }

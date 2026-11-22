@@ -257,8 +257,8 @@ export function ResourceVideoDemo() {
 
         <Waitlist
           source="resource-video"
-          heading="Want lessons from your own resources?"
-          blurb="This is an early demo. Join the waitlist and we’ll email you when you can generate lessons from your uploads."
+          heading="Make lessons from your own resources"
+          blurb="This is an early demo. Start a free trial to generate lessons from your own uploads."
         />
       </main>
     );
