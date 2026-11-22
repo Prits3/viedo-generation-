@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { validateComparison, prepareVideoScene } from "../src/lib/comparison-evidence.ts";
+import { chartFindings, validateComparison, prepareVideoScene } from "../src/lib/comparison-evidence.ts";
 import { inspectVideo } from "../src/lib/video-quality.ts";
 import { sceneFromDraft } from "../src/lib/assemble.ts";
 import { checkScene } from "../src/lib/check.ts";
@@ -25,6 +25,40 @@ test("rejects invented geometry even if the display text is correct", () => {
   assert.deepEqual(findings.map((f) => f.code), ["chart.coordinates"]);
 });
 
+test("rejects swapped group labels even with the correct values, unit, and citations", () => {
+  const swapped = rows.map((row, i) => ({ ...row, label: rows[1 - i].label }));
+  assert.deepEqual(check(swapped).map((f) => f.code), ["chart.label", "chart.label"]);
+});
+
+test("retains the shipped comparison with cited counts of 31 and 22 out of 40", () => {
+  const sleep = showcase("l-n0tfgq8fznas");
+  const scene = sleep.intro.scenes.find((s) => s.comparison);
+  const inventory = new Map(sleep.inventory.map((it) => [it.id, it]));
+  assert.deepEqual(chartFindings(scene, inventory), []);
+  const prepared = prepareVideoScene(scene, inventory);
+  assert.equal(prepared.type, "comparison");
+  assert.deepEqual(prepared.comparison.rows.map((r) => r.to), [31, 22]);
+  assert.deepEqual(prepared.comparison.rows.map((r) => r.display), ["31 of 40 pairs", "22 of 40 pairs"]);
+  assert.match(prepared.comparison.rows[0].label, /at least 8 hours/i);
+  assert.deepEqual(chartFindings(prepared, inventory), []);
+  assert.equal(prepareVideoScene(prepared, inventory), prepared);
+});
+
+test("rejects ambiguous excerpts, different totals, and a denominator used as a measurement", () => {
+  const crowded = new Map(byId);
+  const first = byId.get("R-01");
+  crowded.set(first.id, { ...first, source: { quote: "The street with trees was measured next to the street without trees, at 34 °C." } });
+  assert.ok(check(rows, "°C", crowded).some((f) => f.code === "chart.evidence"));
+  const sleep = showcase("l-n0tfgq8fznas");
+  const scene = sleep.intro.scenes.find((s) => s.comparison);
+  const inventory = new Map(sleep.inventory.map((it) => [it.id, it]));
+  const entry = inventory.get("R-01");
+  inventory.set(entry.id, { ...entry, source: { ...entry.source, quote: entry.source.quote.replace("40 pairs", "41 pairs") } });
+  assert.ok(chartFindings(scene, inventory).some((f) => f.code === "chart.scale"));
+  inventory.set(entry.id, { ...entry, quantity: { ...entry.quantity, value: "40" } });
+  assert.ok(chartFindings(scene, inventory).some((f) => f.code === "chart.evidence"));
+});
+
 test("rejects swapped citations, an incorrect unit, and values pulled out of times", () => {
   assert.ok(check([{ ...rows[0], ref: "R-02" }, rows[1]]).some((f) => f.code === "chart.coordinates"));
   assert.ok(check(rows, "%").some((f) => f.code === "chart.unit"));
@@ -35,7 +69,8 @@ test("rejects swapped citations, an incorrect unit, and values pulled out of tim
 
 test("keeps signed ranges and rejects sign changes and shortened ranges", () => {
   const inventory = new Map(byId);
-  inventory.set("R-01", { ...byId.get("R-01"), quantity: { value: "−8 to −4", unit: "°C" }, source: { quote: "The range was −8 to −4 °C." } });
+  const original = byId.get("R-01");
+  inventory.set("R-01", { ...original, quantity: { ...original.quantity, value: "−8 to −4" }, source: { quote: "The range on the street without trees was −8 to −4 °C." } });
   const row = { ...rows[0], from: -8, to: -4, display: "−8 to −4 °C" };
   assert.deepEqual(check([row, rows[1]], "°C", inventory), []);
   assert.ok(check([{ ...row, from: 4, to: 8 }, rows[1]], "°C", inventory).length > 0);
@@ -45,7 +80,7 @@ test("keeps signed ranges and rejects sign changes and shortened ranges", () => 
 
 test("does not turn a quoted approximation into an exact on-screen value", () => {
   const inventory = new Map(byId);
-  inventory.set("R-01", { ...byId.get("R-01"), source: { quote: "The estimated temperature was about 34 °C." } });
+  inventory.set("R-01", { ...byId.get("R-01"), source: { quote: "The temperature on the street without trees was about 34 °C." } });
   assert.equal(check(rows, "°C", inventory)[0].code, "chart.display");
   assert.deepEqual(check([{ ...rows[0], display: "about 34 °C" }, rows[1]], "°C", inventory), []);
 });
