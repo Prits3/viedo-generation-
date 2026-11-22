@@ -28,7 +28,7 @@ export default function PrivacyPage() {
 
       <h2>Early-access email</h2>
       <p>
-        If you leave your email on the start page, it is stored with Netlify Forms and used only to tell you when sign-in opens and about the launch. The legal
+        If you leave your email on the start page, it is stored in our Supabase waitlist and used only to tell you when sign-in opens and about the launch. The legal
         basis is your consent (Art. 6(1)(a) GDPR). You can withdraw it at any time by writing to the contact above; the address is then deleted.
       </p>
 

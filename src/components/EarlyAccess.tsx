@@ -1,32 +1,18 @@
 "use client";
-// Early-access sign-up on the start page. There are no accounts yet; the address only puts the
-// visitor on the list for when sign-in opens. On Netlify it goes to Netlify Forms (public/__forms.html),
-// elsewhere to /api/signup.
 import { useState } from "react";
 
-type State = { kind: "idle" | "sending" | "done" } | { kind: "error"; message: string };
+type State = { kind: "idle" | "sending" | "done" | "duplicate" } | { kind: "error"; message: string };
+const FAILURE = "We couldn’t complete your signup. Please try again.";
 
-async function viaNetlify(email: string, trap: string): Promise<boolean> {
-  try {
-    const res = await fetch("/__forms.html", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ "form-name": "early-access", email, "bot-field": trap }).toString(),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function viaApi(email: string, trap: string): Promise<string | null> {
+async function viaApi(email: string, trap: string): Promise<State> {
   try {
     const res = await fetch("/api/signup", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, website: trap }) });
-    if (res.ok) return null;
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
-    return data.error ?? "Something went wrong. Please try again.";
+    const data = (await res.json()) as { ok?: boolean; status?: string; error?: string };
+    if (res.ok && data.ok && data.status === "signed_up") return { kind: "done" };
+    if (res.ok && data.ok && data.status === "already_signed_up") return { kind: "duplicate" };
+    return { kind: "error", message: res.status === 400 && data.error ? data.error : FAILURE };
   } catch {
-    return "No connection. Please try again.";
+    return { kind: "error", message: FAILURE };
   }
 }
 
@@ -37,12 +23,11 @@ export function EarlyAccess() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const value = email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) return setState({ kind: "error", message: "Please enter a valid email address." });
+    if (state.kind === "sending") return;
+    const value = email.trim().toLowerCase();
+    if (value.length > 254 || !/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(value)) return setState({ kind: "error", message: "Please enter a valid email address." });
     setState({ kind: "sending" });
-    if (await viaNetlify(value, trap)) return setState({ kind: "done" });
-    const error = await viaApi(value, trap);
-    setState(error ? { kind: "error", message: error } : { kind: "done" });
+    setState(await viaApi(value, trap));
   }
 
   return (
@@ -51,12 +36,12 @@ export function EarlyAccess() {
         <h2 id="early-title">Get early access</h2>
         <p>Accounts with your own library are coming. Leave your email and we tell you when sign-in opens.</p>
       </div>
-      {state.kind === "done" ? (
+      {state.kind === "done" || state.kind === "duplicate" ? (
         <p className="early__done" role="status" data-state="signup-done">
-          Thanks, you are on the list.
+          {state.kind === "done" ? "You’re signed up!" : "You’re already signed up."}
         </p>
       ) : (
-        <form className="early__form" onSubmit={submit} noValidate>
+        <form className="early__form" method="post" action="/api/signup" onSubmit={submit} noValidate>
           <label htmlFor="early-email" className="sr-only">Email address</label>
           <input id="early-email" type="email" name="email" autoComplete="email" inputMode="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required aria-invalid={state.kind === "error"} aria-describedby="early-note" />
           <input className="early__trap" type="text" name="bot-field" tabIndex={-1} autoComplete="off" aria-hidden="true" value={trap} onChange={(e) => setTrap(e.target.value)} />
