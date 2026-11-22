@@ -249,7 +249,7 @@ try {
   const partial = join(tmpDir, "out.mp4");
   await run(FFMPEG, ["-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", join(tmpDir, "parts.txt"), "-i", join(tmpDir, "audio.wav"), "-map", "0:v:0", "-map", "1:a:0",
     "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", String(AUDIO_RATE), "-movflags", "+faststart",
-    "-metadata", `title=${lesson.meta.title}`, "-metadata", "comment=AI-generated with PaperScenes. Every claim links to its source.", partial]);
+    "-metadata", `title=${lesson.meta.title}`, "-metadata", "comment=AI-generated with LearnLayla. Every claim links to its source.", partial]);
   renameSync(partial, outFile);
   writeFileSync(join(outDir, "caption.txt"), shareCaption(lesson, file.provenance.sourceName, file.provenance.sourceFormat));
 

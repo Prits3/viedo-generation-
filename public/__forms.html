@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Forms</title><meta name="robots" content="noindex"></head>
+<body>
+<!-- Netlify detects this form at deploy time; the start page posts to it with fetch (src/components/EarlyAccess.tsx). -->
+<form name="early-access" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input type="hidden" name="form-name" value="early-access">
+  <input type="email" name="email">
+  <input name="bot-field">
+</form>
+</body>
+</html>

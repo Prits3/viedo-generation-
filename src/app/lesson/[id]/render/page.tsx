@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { RenderView } from "./RenderView";
 import "./render.css";
 
-export const metadata: Metadata = { title: "Video frame | PaperScenes", robots: { index: false } };
+export const metadata: Metadata = { title: "Video frame | LearnLayla", robots: { index: false } };
 
 type Query = Promise<{ [key: string]: string | string[] | undefined }>;
 

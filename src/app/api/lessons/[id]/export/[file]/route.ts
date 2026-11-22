@@ -18,7 +18,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     headers: {
       "content-type": file.endsWith(".mp4") ? "video/mp4" : "text/plain; charset=utf-8",
       "content-length": String(statSync(/*turbopackIgnore: true*/ full).size),
-      "content-disposition": `attachment; filename="paperscenes-${slug}-${file}"`,
+      "content-disposition": `attachment; filename="learnlayla-${slug}-${file}"`,
       "cache-control": "no-store",
       "x-content-type-options": "nosniff",
     },

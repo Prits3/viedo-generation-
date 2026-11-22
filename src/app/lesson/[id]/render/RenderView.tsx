@@ -15,6 +15,7 @@ import { stateAt } from "@/lib/actions";
 import { locLabel } from "@/lib/labels";
 import { captionAt, frameTime, planVideo, positionAt, scenesWithoutNarration, sourceChip, VIDEO_FORMATS, type VideoFormat, type VideoPlan } from "@/lib/video-plan";
 import { sourceLine } from "@/lib/share-caption";
+import { BRAND } from "@/lib/brand";
 import { LessonContext } from "@/components/LessonContext";
 import { SceneView } from "@/components/scenes/SceneView";
 import { DuckFigure, Mascot } from "@/components/Duck";
@@ -247,7 +248,7 @@ export function RenderView({ id, format, maxSeconds, endCard, fromScene, at }: P
               </svg>
               <p className="rv-end__brand">
                 <i aria-hidden="true" />
-                PaperScenes
+                {BRAND}
               </p>
               <p className="rv-end__line">Every claim links to its source</p>
               <p className="rv-end__title">{lesson.meta.title}</p>

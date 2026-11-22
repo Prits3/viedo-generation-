@@ -1,6 +1,7 @@
 // Post text for a shared video, built from the lesson file alone (no model call):
 // title, the takeaway, a line that names the source and says the video is AI-generated, hashtags.
 import type { Lesson, Scene } from "./types.ts";
+import { BRAND } from "./brand.ts";
 
 function sceneIdea(scene: Scene | undefined): string | undefined {
   return scene?.statement?.text || scene?.headline || scene?.cues[0]?.text;
@@ -40,7 +41,7 @@ export function shareCaption(lesson: Lesson, sourceName: string, sourceFormat?: 
     takeaway(lesson),
     "",
     "Every claim in this video links to its passage in the source.",
-    `AI-generated with PaperScenes from: ${sourceLine(lesson, sourceName, sourceFormat)}. The narration is a synthetic voice.`,
+    `AI-generated with ${BRAND} from:${sourceLine(lesson, sourceName, sourceFormat)}. The narration is a synthetic voice.`,
     "",
     tags.join(" "),
     "",
