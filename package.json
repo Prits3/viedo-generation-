@@ -16,7 +16,9 @@
     "e2e": "node scripts/e2e.mjs",
     "generate": "node scripts/generate.mjs",
     "check:audio": "node scripts/check-audio.mjs",
-    "check:failures": "node scripts/check-upload-failures.mjs"
+    "check:failures": "node scripts/check-upload-failures.mjs",
+    "check:inputs": "node scripts/check-inputs.mjs",
+    "check:shorts": "node scripts/check-shorts.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",

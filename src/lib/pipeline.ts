@@ -2,17 +2,22 @@
 //
 //   input -> source blocks -> content inventory -> storyboard -> checked scenes -> figures -> voice -> lesson file
 //
+// Two modes share it. "full" is the lesson with intro and chapters. "short" builds a 45-90 second
+// run of scenes (hook, key points, takeaway) from the most important inventory entries; it skips
+// the figure step and allows fewer repairs, and every check runs as in a full lesson.
+//
 // Each step writes a checkpoint into the lesson's directory. A run that was interrupted or failed
 // is resumed from its last checkpoint; finished model calls are not repeated. A single scene can
 // be regenerated later without touching the others.
 import type { Chapter, InventoryItem, Lesson, Scene } from "./types.ts";
 import type { InventoryDraft, StoryboardDraft } from "./lesson-schema.ts";
 import { GenerateError } from "./errors.ts";
-import { LIMITS } from "./limits.ts";
+import { LIMITS, SHORT, type LessonMode } from "./limits.ts";
 import { PROMPT_VERSION, modelsFor, type ProviderId } from "./models.ts";
 import type { RunRecord } from "./providers.ts";
-import { sourceFromPdf, sourceFromText, type SourceDoc } from "./source.ts";
-import { buildInventory, buildStoryboard, checkClaims, readFigure, repairScene } from "./generate.ts";
+import { sourceFromOffice, sourceFromPdf, sourceFromText, type SourceDoc } from "./source.ts";
+import { buildInventory, buildShortStoryboard, buildStoryboard, checkClaims, readFigure, repairScene } from "./generate.ts";
+import { cutFailing, fitShort, hasRealQuote, selectForShort, shortProblems, totalSeconds } from "./short.ts";
 import { autoVerification, chaptersFromStoryboard, inventoryFromDraft, regroup, sceneFromDraft, type SceneContext } from "./assemble.ts";
 import { checkScene } from "./check.ts";
 import { sceneRefs } from "./coverage.ts";
@@ -42,12 +47,15 @@ const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd
 const assetUrl = (id: string, rel: string) => `/api/lessons/${id}/asset/${rel}`;
 const DRAFTABLE: Scene["type"][] = ["question", "statement", "points", "flow", "milestones", "comparison"];
 
-export function createJob(input: { kind: "pdf"; name: string; bytes: Uint8Array } | { kind: "text"; name: string; text: string }, provider: ProviderId): Job {
+export type JobInput = { kind: "pdf" | "docx" | "pptx"; name: string; bytes: Uint8Array } | { kind: "text"; name: string; text: string };
+
+export function createJob(input: JobInput, provider: ProviderId, mode: LessonMode = "full"): Job {
   const id = newId();
   const now = new Date().toISOString();
-  const job: Job = { id, createdAt: now, updatedAt: now, status: "running", stage: "reading", input: { kind: input.kind, name: input.name }, provider, models: modelsFor(provider), runs: [] };
-  if (input.kind === "pdf") writeBytes(id, "source.pdf", input.bytes);
-  else writeBytes(id, "input.txt", input.text);
+  // Word and PowerPoint files are addressed like a text (by paragraph or slide), so their kind is "text".
+  const job: Job = { id, createdAt: now, updatedAt: now, status: "running", stage: "reading", mode, input: { kind: input.kind === "pdf" ? "pdf" : "text", format: input.kind, name: input.name }, provider, models: modelsFor(provider), runs: [] };
+  if (input.kind === "text") writeBytes(id, "input.txt", input.text);
+  else writeBytes(id, `source.${input.kind}`, input.bytes);
   saveJob(job);
   return job;
 }
@@ -75,7 +83,7 @@ async function narrate(id: string, scene: Scene, signal?: AbortSignal): Promise<
   return out;
 }
 
-function finishLesson(id: string, source: SourceDoc, meta: InventoryDraft, inventory: InventoryItem[], checked: Checked, audio: Map<string, AudioMeta>): Lesson {
+function finishLesson(id: string, source: SourceDoc, meta: InventoryDraft, inventory: InventoryItem[], checked: Checked, audio: Map<string, AudioMeta>, mode: LessonMode): Lesson {
   const time = (sc: Scene) => {
     const a = audio.get(sc.id);
     return timeScene(sc, a?.timing, a ? assetUrl(id, a.file) : undefined);
@@ -95,6 +103,7 @@ function finishLesson(id: string, source: SourceDoc, meta: InventoryDraft, inven
       pdfUrl: source.kind === "pdf" ? assetUrl(id, "source.pdf") : "",
       pages: source.count,
       sourceKind: source.kind,
+      ...(mode === "short" ? { mode } : {}),
     },
     inventory,
     intro,
@@ -108,6 +117,12 @@ function finishLesson(id: string, source: SourceDoc, meta: InventoryDraft, inven
   };
   lesson.verification = autoVerification(lesson);
   lesson.verification.notes.push(...checked.notes);
+  if (source.format === "docx") lesson.verification.notes.push("The source is a Word file. Only its text was read, paragraph by paragraph (§); pictures, charts, comments, headers and footers were not.");
+  if (source.format === "pptx") lesson.verification.notes.push("The source is a PowerPoint file. Only the text on its slides was read; each § is one slide. Pictures, charts and speaker notes were not.");
+  if (mode === "short") {
+    const off = shortProblems(all);
+    lesson.verification.notes.push(`Short mode: a summary of the most important points, not the whole source. Everything else stays in the index.${off.length ? ` Outside the intended length: ${off.join(", ")}.` : ""}`);
+  }
   return lesson;
 }
 
@@ -200,6 +215,7 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
   const job = loadJob(id);
   if (!job) throw new GenerateError("not_found", "No such generation.");
   const provider = job.provider;
+  const short = job.mode === "short";
   job.status = "running";
   job.error = undefined;
   const stage = (s: Stage, extra: Record<string, unknown> = {}) => {
@@ -217,7 +233,7 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
   };
 
   try {
-    emit({ type: "job", id, provider, models: job.models, voice: voiceSetup()?.name ?? "browser" });
+    emit({ type: "job", id, mode: job.mode ?? "full", provider, models: job.models, voice: voiceSetup()?.name ?? "browser" });
 
     // 1. input -> source blocks
     stage("reading");
@@ -227,6 +243,10 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
         const bytes = readBytes(id, "source.pdf");
         if (!bytes) throw new GenerateError("invalid_request", "The uploaded file is missing.");
         source = await sourceFromPdf(new Uint8Array(bytes), job.input.name);
+      } else if (job.input.format === "docx" || job.input.format === "pptx") {
+        const bytes = readBytes(id, `source.${job.input.format}`);
+        if (!bytes) throw new GenerateError("invalid_request", "The uploaded file is missing.");
+        source = sourceFromOffice(new Uint8Array(bytes), job.input.name, job.input.format);
       } else {
         source = sourceFromText(readBytes(id, "input.txt")?.toString("utf8") ?? "", job.input.name);
       }
@@ -235,7 +255,7 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
     job.input = { ...job.input, hash: source.hash, chars: source.chars, count: source.count };
     const unreadable = source.pageStatus.filter((s) => s.status === "unreadable").map((s) => s.page);
     const readable = source.pages.filter((p) => !unreadable.includes(p.page));
-    emit({ type: "extracted", kind: source.kind, count: source.count, unreadable, chars: source.chars });
+    emit({ type: "extracted", kind: source.kind, format: source.format ?? source.kind, count: source.count, unreadable, chars: source.chars });
     stop();
 
     // 2. source blocks -> content inventory (fast model)
@@ -247,7 +267,10 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
       writeJson(id, "inventory.json", invDraft);
       r.runs.forEach(record);
     }
-    const { inventory, idMap } = inventoryFromDraft(invDraft.inventory, source);
+    // A short leaves out entries that are word fragments rather than quotes (see hasRealQuote).
+    const draftItems = short ? invDraft.inventory.filter(hasRealQuote) : invDraft.inventory;
+    const fragments = invDraft.inventory.length - draftItems.length;
+    const { inventory, idMap } = inventoryFromDraft(draftItems, source);
     const usable = inventory.filter((it) => it.status === "matched");
     if (inventory.length < 3 || usable.length === 0) throw new GenerateError("invalid_model_output", `The inventory had ${inventory.length} entries, ${usable.length} of them traceable to the source.`);
     job.title = clip(invDraft.title || source.name, 120);
@@ -255,27 +278,55 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
     stop();
 
     // 3. inventory -> storyboard (strong model)
+    const ctx: SceneContext = { byId: new Map(inventory.map((it) => [it.id, it])), idMap };
     let sbDraft = readJson<StoryboardDraft>(id, "storyboard.json");
     stage("storyboard", { model: job.models.strong, cached: Boolean(sbDraft) });
+    const words = wordCount(readable.map((p) => p.text).join(" "));
+    const meta = { title: job.title, sourceType: invDraft.source_type, words };
+    const sbOpts = { provider, signal, onProgress: (outputChars: number) => emit({ type: "progress", stage: "storyboard", outputChars }) };
     if (!sbDraft) {
-      const words = wordCount(readable.map((p) => p.text).join(" "));
-      const r = await buildStoryboard({ title: job.title, sourceType: invDraft.source_type, words }, inventory.filter((it) => it.status !== "unclear"), source.kind, { provider, signal, onProgress: (outputChars) => emit({ type: "progress", stage: "storyboard", outputChars }) });
+      let r = short ? await buildShortStoryboard(meta, selectForShort(inventory), source.kind, sbOpts) : await buildStoryboard(meta, inventory.filter((it) => it.status !== "unclear"), source.kind, sbOpts);
+      record(r.run);
+      if (short) {
+        // Too few scenes or too little narration cannot be mended later, so the model is asked once more.
+        const measure = (d: StoryboardDraft) => {
+          const { scenes } = chaptersFromStoryboard(d, ctx, "").intro;
+          return { scenes: scenes.length, seconds: totalSeconds(scenes), spoken: scenes.reduce((n, s) => n + s.cues.reduce((m, c) => m + wordCount(c.text), 0), 0) };
+        };
+        const first = measure(r.draft);
+        if (first.scenes < SHORT.minScenes || first.seconds < SHORT.retryBelowSeconds) {
+          stop();
+          const again = await buildShortStoryboard(meta, selectForShort(inventory), source.kind, sbOpts, `A first attempt was too short: ${first.scenes} scenes and ${first.spoken} spoken words. Write ${SHORT.minScenes + 1} or ${SHORT.maxScenes} scenes with two full sentences each, ${SHORT.minWords} to ${SHORT.maxWords} words in total.`);
+          record(again.run);
+          const second = measure(again.draft);
+          if (second.scenes >= Math.min(first.scenes, SHORT.minScenes) && second.seconds > first.seconds) r = again;
+        }
+      }
       sbDraft = r.draft;
       writeJson(id, "storyboard.json", sbDraft);
-      record(r.run);
     }
     stop();
 
     // 4. check every scene; repair the ones that fail, one by one (fast model)
-    const ctx: SceneContext = { byId: new Map(inventory.map((it) => [it.id, it])), idMap };
     let checked = readJson<Checked>(id, "scenes.json");
     stage("checking", { model: job.models.fast, cached: Boolean(checked) });
-    if (!checked) {
-      const { intro, chapters } = chaptersFromStoryboard(sbDraft, ctx, source.kind === "pdf" ? "The paper in one minute" : "The short version");
-      if (intro.scenes.length === 0 || chapters.length === 0) throw new GenerateError("invalid_model_output", "The storyboard had no usable intro or chapters.");
+    const sentenceOf = (problem: string) => Number(/^Sentence (\d+) /.exec(problem)?.[1] ?? 0) - 1;
+    /** Checks one storyboard. `lost` lists what a short had to give up, sentence by sentence. */
+    const checkAll = async (sb: StoryboardDraft): Promise<{ checked: Checked; lost: string[] }> => {
+      const { intro, chapters } = chaptersFromStoryboard(sb, ctx, short ? "Highlights" : source.kind === "pdf" ? "The paper in one minute" : "The short version");
+      const notes: string[] = [];
+      const lost: string[] = [];
+      if (short) {
+        // A short is one run of scenes: all of it is the "intro", and there are no chapters.
+        if (intro.scenes.length < 3) throw new GenerateError("invalid_model_output", `The short storyboard had ${intro.scenes.length} usable scene(s).`);
+        const fit = fitShort(intro.scenes, SHORT.maxSeconds - 4);
+        intro.scenes = fit.scenes;
+        intro.summary = "The hook, the most important points and the takeaway.";
+        notes.push(...fit.notes);
+        if (fragments) notes.push(`${fragments} inventory entr${fragments === 1 ? "y was" : "ies were"} left out because the quote was a fragment of fewer than four words, which cannot be traced.`);
+      } else if (intro.scenes.length === 0 || chapters.length === 0) throw new GenerateError("invalid_model_output", "The storyboard had no usable intro or chapters.");
       // Model-judged half of the check: is each sentence supported by the passages it cites?
       const judged = new Map<string, string[]>();
-      const notes: string[] = [];
       try {
         const r = await checkClaims([...intro.scenes, ...chapters.flatMap((c) => c.scenes)], ctx.byId, { provider, signal });
         record(r.run);
@@ -285,21 +336,30 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
         notes.push("The model-based comparison of each sentence with its cited passages did not run; only the deterministic checks did.");
       }
       let repairs = 0;
+      let cut = 0;
       for (const chapter of [intro, ...chapters]) {
         for (let k = 0; k < chapter.scenes.length; k++) {
           let scene = chapter.scenes[k];
           let problems = [...checkScene(scene, ctx.byId), ...(judged.get(scene.id) ?? [])];
           let attempts = 1;
           let repaired = false;
-          while (problems.length && attempts <= LIMITS.maxSceneRepairs && repairs < 10) {
+          // A short cuts a failing sentence when the scene stands without it; that needs no model call.
+          const trimmed = short && problems.length ? cutFailing(scene, problems, ctx.byId) : null;
+          if (trimmed) {
+            lost.push(...problems.map((p) => `"${scene.cues[sentenceOf(p)]?.text ?? ""}": ${p}`));
+            scene = trimmed.scene;
+            cut += trimmed.cut;
+            problems = [];
+          }
+          while (problems.length && attempts <= LIMITS.maxSceneRepairs && repairs < (short ? SHORT.maxRepairs : 10)) {
             stop();
             emit({ type: "scene", id: scene.id, title: scene.title, status: "repairing", problems: problems.length });
             attempts++;
             repairs++;
             try {
-              const r = await repairScene({ scene, problems, chapterTitle: chapter.title, neighbours: chapter.scenes.filter((s) => s.id !== scene.id).map((s) => s.title), entries: entriesFor(scene, inventory), kind: source.kind }, { provider, signal });
+              const r = await repairScene({ scene, problems, chapterTitle: chapter.title, neighbours: chapter.scenes.filter((s) => s.id !== scene.id).map((s) => s.title), entries: entriesFor(scene, inventory), kind: source.kind, said: short ? chapter.scenes.filter((s) => s.id !== scene.id).flatMap((s) => s.cues.map((c) => c.text)) : undefined, strong: short }, { provider, signal });
               record(r.run);
-              const fixed = sceneFromDraft(r.draft, scene.id, ctx);
+              const fixed = sceneFromDraft(short ? { ...r.draft, analogy: "" } : r.draft, scene.id, ctx);
               const left = fixed ? checkScene(fixed, ctx.byId) : problems;
               if (fixed && left.length < problems.length) {
                 scene = fixed;
@@ -316,13 +376,65 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
           emit({ type: "scene", id: scene.id, title: scene.title, status: scene.check.status });
         }
       }
-      checked = { intro, chapters, figuresDone: false, notes };
+      // A short has few scenes and no chapter to put a weak one in context, so the scenes that were
+      // rewritten are compared with their passages once more instead of being taken on trust.
+      const redone = short ? intro.scenes.filter((s) => s.check?.status === "repaired") : [];
+      if (redone.length) {
+        try {
+          const r = await checkClaims(redone, ctx.byId, { provider, signal });
+          record(r.run);
+          for (const scene of redone) {
+            const found = r.findings.filter((f) => f.scene === scene.id).map((f) => `Sentence ${f.sentence} is not supported by its cited passages: ${f.problem}`);
+            if (!found.length || !scene.check) continue;
+            const k = intro.scenes.indexOf(scene);
+            const trimmed = cutFailing(scene, found, ctx.byId);
+            if (trimmed) cut += trimmed.cut;
+            lost.push(...found.map((p) => `"${scene.cues[sentenceOf(p)]?.text ?? ""}": ${p}`));
+            intro.scenes[k] = trimmed ? trimmed.scene : { ...scene, check: { ...scene.check, status: "flagged", problems: [...scene.check.problems, ...found] } };
+            if (!trimmed) emit({ type: "scene", id: scene.id, title: scene.title, status: "flagged" });
+          }
+        } catch (err) {
+          if (!(err instanceof GenerateError) || !["invalid_model_output", "upstream_error", "rate_limited"].includes(err.code) || signal?.aborted) throw err;
+          notes.push("The rewritten scenes were not compared with their cited passages a second time; only the deterministic checks ran on them.");
+        }
+      }
+      if (cut) notes.push(`Short mode: ${cut} sentence(s) that failed a check were cut rather than rewritten; what remains passed.`);
+      if (short) {
+        // A point that still fails after its repair is left out while enough scenes remain. The hook
+        // and the takeaway stay in any case, flagged if they must be.
+        const before = intro.scenes.length;
+        for (let k = intro.scenes.length - 2; k >= 1 && intro.scenes.length > SHORT.minScenes; k--) {
+          if (intro.scenes[k].check?.status !== "flagged") continue;
+          lost.push(...(intro.scenes[k].check?.problems ?? []).map((p) => `"${intro.scenes[k].cues[sentenceOf(p)]?.text ?? intro.scenes[k].title}": ${p}`));
+          intro.scenes.splice(k, 1);
+        }
+        if (intro.scenes.length < before) notes.push(`Short mode: ${before - intro.scenes.length} scene(s) that still failed a check after one repair were left out.`);
+      }
+      return { checked: { intro, chapters, figuresDone: false, notes }, lost };
+    };
+    if (!checked) {
+      let result = await checkAll(sbDraft);
+      // A short that the checks left too short is written once more, with what failed as feedback.
+      if (short && totalSeconds(result.checked.intro.scenes) < SHORT.minSeconds + 3) {
+        stop();
+        const before = totalSeconds(result.checked.intro.scenes);
+        const feedback = `A first attempt lost too much in the automatic check and ended up too short. These sentences failed and were removed:\n${result.lost.slice(0, 8).map((l) => "- " + l).join("\n")}\nWrite it again so that every sentence passes: numbers, times and units exactly as in the cited quote, nothing the quote does not say. ${SHORT.minScenes + 1} or ${SHORT.maxScenes} scenes with two full sentences each, ${SHORT.minWords} to ${SHORT.maxWords} words in total.`;
+        const again = await buildShortStoryboard(meta, selectForShort(inventory), source.kind, sbOpts, feedback);
+        record(again.run);
+        const second = await checkAll(again.draft);
+        if (totalSeconds(second.checked.intro.scenes) > before) {
+          result = second;
+          sbDraft = again.draft;
+          writeJson(id, "storyboard.json", sbDraft);
+        }
+      }
+      checked = result.checked;
       writeJson(id, "scenes.json", checked);
     }
     stop();
 
-    // 5. original figures or tables (vision model), PDF only
-    if (source.kind === "pdf" && !checked.figuresDone && process.env.LESSON_FIGURES !== "off") {
+    // 5. original figures or tables (vision model), PDF only, not in a short
+    if (source.kind === "pdf" && !short && !checked.figuresDone && process.env.LESSON_FIGURES !== "off") {
       stage("figures", { model: job.models.vision });
       await addFigures(id, source, inventory, checked, provider, job.runs, emit, signal);
       saveJob(job);
@@ -333,7 +445,7 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
 
     // 6. narration with the local voice (same voice as the bundled demo)
     const voice = voiceSetup();
-    const scenes = [...checked.intro.scenes, ...checked.chapters.flatMap((c) => c.scenes)];
+    let scenes = [...checked.intro.scenes, ...checked.chapters.flatMap((c) => c.scenes)];
     const audio = new Map<string, AudioMeta>();
     stage("voice", { voice: voice?.name ?? "browser", total: scenes.length });
     if (voice) {
@@ -353,18 +465,34 @@ export async function runPipeline(id: string, emit: Emit, signal?: AbortSignal):
         }
       };
       await Promise.all([worker(), worker(), worker()]);
+      // The length of a short is a promise, and only now is it measured rather than estimated.
+      if (short) {
+        const fit = fitShort(scenes.map((sc) => ({ ...sc, duration: audio.get(sc.id)?.timing.duration })));
+        if (fit.notes.length) {
+          checked.intro.scenes = fit.scenes.map(({ duration: _measured, ...sc }) => sc);
+          checked.notes.push(...fit.notes);
+          writeJson(id, "scenes.json", checked);
+          scenes = checked.intro.scenes;
+          // Scenes that lost a sentence are recorded again; the others are found by their hash.
+          for (const sc of scenes) {
+            const meta = await narrate(id, sc, signal).catch(() => null);
+            if (meta) audio.set(sc.id, meta);
+            else audio.delete(sc.id);
+          }
+        }
+      }
     }
     stop();
 
     // 7. the versioned lesson file
     stage("saving");
-    const lesson = finishLesson(id, source, invDraft, inventory, checked, audio);
+    const lesson = finishLesson(id, source, invDraft, inventory, checked, audio, short ? "short" : "full");
     const file: LessonFile = {
       format: LESSON_FORMAT,
       version: LESSON_VERSION,
       revision: 1,
       savedAt: new Date().toISOString(),
-      provenance: { sourceKind: source.kind, sourceName: source.name, sourceHash: source.hash, provider, models: job.models, promptVersion: PROMPT_VERSION, voice: voice && lesson.hasRecordedVoice ? voice.name : "browser", runs: job.runs },
+      provenance: { ...(short ? { mode: "short" as const } : {}), sourceKind: source.kind, ...(source.format && source.format !== source.kind ? { sourceFormat: source.format } : {}), sourceName: source.name, sourceHash: source.hash, provider, models: job.models, promptVersion: PROMPT_VERSION, voice: voice && lesson.hasRecordedVoice ? voice.name : "browser", runs: job.runs },
       lesson,
     };
     saveLesson(file);

@@ -1,5 +1,6 @@
 // One internal source structure for every input format.
-// A source is a list of numbered blocks: PDF pages, or paragraphs of a pasted text.
+// A source is a list of numbered blocks: PDF pages, paragraphs of a text or a Word file, or
+// slides of a presentation.
 // Everything downstream (inventory, quote check, source view) only sees blocks, so a statement
 // always points at "block n" and the UI names it "p. n" or "§n".
 import { createHash } from "node:crypto";
@@ -7,9 +8,16 @@ import type { PageStatus, SourceBlock } from "./types.ts";
 import { extractPdfText, type PageText } from "./pdf-text.ts";
 import { GenerateError } from "./errors.ts";
 import { LIMITS } from "./limits.ts";
+import { readDocx, readPptx, type OfficeText } from "./office.ts";
+import { ZipError } from "./zip.ts";
+
+/** What the upload was. `kind` says how its blocks are addressed (pages or paragraphs). */
+export type SourceFormat = "pdf" | "text" | "docx" | "pptx";
 
 export interface SourceDoc {
   kind: "pdf" | "text";
+  /** Absent in sources stored before other formats existed: then it equals `kind`. */
+  format?: SourceFormat;
   /** File name or a title taken from the text. */
   name: string;
   /** sha256 of the original bytes; stored with the lesson as provenance. */
@@ -91,6 +99,75 @@ export function sourceFromText(raw: string, name = "Pasted text"): SourceDoc {
     pageStatus: blocks.map((b) => ({ page: b.n, chars: b.text.length, status: "ok" as const })),
     count: blocks.length,
     chars: text.length,
+    blocks,
+  };
+}
+
+/**
+ * Which reader an uploaded file gets, from its first bytes and its name. Null when it is neither
+ * a PDF, a Word or PowerPoint file, nor a plain-text file.
+ */
+export function formatOf(name: string, bytes: Uint8Array): SourceFormat | null {
+  const ext = /\.[a-z0-9]+$/i.exec(name)?.[0].toLowerCase() ?? "";
+  if (new TextDecoder("latin1").decode(bytes.subarray(0, 1024)).includes("%PDF-") || ext === ".pdf") return "pdf";
+  if (ext === ".docx" || ext === ".pptx") return ext.slice(1) as SourceFormat;
+  if (ext === ".txt" || ext === ".md" || ext === ".markdown") return "text";
+  return null;
+}
+
+/** The text of an uploaded .txt or .md file. Refuses binary content instead of showing garbage. */
+export function textFromBytes(bytes: Uint8Array, name: string): string {
+  let text: string;
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) text = new TextDecoder("utf-16le").decode(bytes);
+  else if (bytes[0] === 0xfe && bytes[1] === 0xff) text = new TextDecoder("utf-16be").decode(bytes);
+  else {
+    if (bytes.subarray(0, 8000).includes(0)) throw new GenerateError("unsupported_type", "The file is not plain text.");
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      text = new TextDecoder("windows-1252").decode(bytes);
+    }
+  }
+  text = text.replace(/^﻿/, "");
+  // Markdown heading marks are layout, not content.
+  return /\.(md|markdown)$/i.test(name) ? text.replace(/^#{1,6}[ \t]+/gm, "") : text;
+}
+
+const OLE = [0xd0, 0xcf, 0x11, 0xe0];
+const withoutExt = (name: string) => name.replace(/\.[a-z0-9]+$/i, "");
+
+/**
+ * A Word or PowerPoint file as source blocks: paragraphs of a document, slides of a presentation.
+ * An encrypted Office file is not a zip archive but an OLE container, like the old .doc format.
+ */
+export function sourceFromOffice(bytes: Uint8Array, name: string, format: "docx" | "pptx"): SourceDoc {
+  const what = format === "docx" ? "Word document" : "PowerPoint presentation";
+  if (OLE.every((b, k) => bytes[k] === b)) throw new GenerateError("protected_document", `The file is an encrypted or old-format Office container, not a .${format} archive.`);
+  if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) throw new GenerateError("invalid_document", `The file is not a .${format} archive.`);
+  let read: OfficeText | null;
+  try {
+    read = format === "docx" ? readDocx(bytes) : readPptx(bytes);
+  } catch (err) {
+    if (err instanceof ZipError && err.reason === "encrypted") throw new GenerateError("protected_document", "The archive is encrypted.");
+    throw new GenerateError("invalid_document", err instanceof ZipError ? err.message : "The archive could not be read.");
+  }
+  if (!read) throw new GenerateError("invalid_document", `The archive does not contain a ${what}.`);
+  const { blocks } = read;
+  const unit = format === "docx" ? "paragraphs" : "slides";
+  const chars = blocks.reduce((n, b) => n + b.text.length + (b.heading?.length ?? 0), 0);
+  if (chars < LIMITS.minPastedChars) throw new GenerateError("too_little_text", `${chars} characters of text in ${blocks.length} ${unit}.`);
+  if (chars > LIMITS.maxTextChars) throw new GenerateError("too_long", `${chars} characters of text.`);
+  if (blocks.length > (format === "docx" ? LIMITS.maxDocBlocks : LIMITS.maxSlides)) throw new GenerateError("too_long", `${blocks.length} ${unit}.`);
+  return {
+    kind: "text",
+    format,
+    name: read.title?.slice(0, 120) || withoutExt(name),
+    hash: sha256(bytes),
+    pages: blocks.map((b) => ({ page: b.n, text: b.heading ? `${b.heading}\n${b.text}` : b.text })),
+    // A slide that holds only a picture has nothing to cite; it is listed as not covered.
+    pageStatus: blocks.map((b) => ({ page: b.n, chars: b.text.length + (b.heading?.length ?? 0), status: b.text || b.heading ? ("ok" as const) : ("unreadable" as const) })),
+    count: blocks.length,
+    chars,
     blocks,
   };
 }

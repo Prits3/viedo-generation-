@@ -13,7 +13,7 @@ export type ProviderId = "bedrock" | "anthropic";
 export type Role = "fast" | "strong" | "vision";
 
 /** Bump when prompts or the draft schemas change; stored with every lesson. */
-export const PROMPT_VERSION = "2026-11-21.2";
+export const PROMPT_VERSION = "2026-11-22.1";
 
 // Defaults confirmed live with the team key on 2026-11-21 (see README, "Confirmed Bedrock capabilities").
 // The key reaches Bedrock's OpenAI-compatible endpoint (bedrock-mantle); Claude models on Bedrock

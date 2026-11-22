@@ -1,28 +1,39 @@
 // Runs the generation pipeline from the command line, exactly as the upload page does.
 // The lesson is stored in the lesson store and can be opened at /lesson/<id>.
 //
-//   node scripts/generate.mjs <paper.pdf | text.txt | text.md> [--provider bedrock|anthropic] [--resume <id>]
+//   node scripts/generate.mjs <file.pdf | .docx | .pptx | .txt | .md> [--mode short|full] [--provider bedrock|anthropic] [--resume <id>]
+//
+// --mode short makes the 45-90 second highlights; the default is the full lesson.
 //
 // Needs AWS_BEARER_TOKEN_BEDROCK (default provider) or ANTHROPIC_API_KEY. Costs tokens.
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { createJob, runPipeline } from "../src/lib/pipeline.ts";
 import { defaultProvider } from "../src/lib/models.ts";
+import { formatOf, textFromBytes } from "../src/lib/source.ts";
+import { ACCEPTED_EXTENSIONS } from "../src/lib/limits.ts";
 
 const args = process.argv.slice(2);
 const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
 const file = args.find((a, i) => !a.startsWith("--") && !args[i - 1]?.startsWith("--"));
 const resume = opt("--resume");
 const provider = opt("--provider") ?? defaultProvider();
-if ((!file && !resume) || !provider) {
-  console.error(!provider ? "No provider configured (AWS_BEARER_TOKEN_BEDROCK or ANTHROPIC_API_KEY)." : "usage: node scripts/generate.mjs <paper.pdf | text.txt> [--provider bedrock|anthropic] [--resume <id>]");
+const mode = opt("--mode") ?? "full";
+if ((!file && !resume) || !provider || !["short", "full"].includes(mode)) {
+  console.error(!provider ? "No provider configured (AWS_BEARER_TOKEN_BEDROCK or ANTHROPIC_API_KEY)." : "usage: node scripts/generate.mjs <file.pdf | .docx | .pptx | .txt | .md> [--mode short|full] [--provider bedrock|anthropic] [--resume <id>]");
   process.exit(2);
 }
 
 let id = resume;
 if (!id) {
   const name = basename(file);
-  const job = /\.pdf$/i.test(name) ? createJob({ kind: "pdf", name, bytes: new Uint8Array(readFileSync(file)) }, provider) : createJob({ kind: "text", name: name.replace(/\.(txt|md)$/i, ""), text: readFileSync(file, "utf8") }, provider);
+  const bytes = new Uint8Array(readFileSync(file));
+  const format = formatOf(name, bytes);
+  if (!format) {
+    console.error(`Not an accepted kind of file (${ACCEPTED_EXTENSIONS.join(", ")}): ${name}`);
+    process.exit(2);
+  }
+  const job = createJob(format === "text" ? { kind: "text", name: name.replace(/\.[a-z0-9]+$/i, ""), text: textFromBytes(bytes, name) } : { kind: format, name, bytes }, provider, mode);
   id = job.id;
 }
 const t0 = Date.now();
@@ -40,7 +51,10 @@ try {
   console.log(`\n${l.meta.title}`);
   console.log(`inventory ${l.inventory.length} entries, quotes found ${l.verification.quoteChecks.matched}/${l.verification.quoteChecks.total}`);
   for (const c of [l.intro, ...l.chapters]) console.log(`  [${c.kind}] ${c.title}: ${c.scenes.map((s) => `${s.type}${s.check?.status === "ok" ? "" : "(" + s.check?.status + ")"}`).join(", ")}`);
-  console.log(`scenes ${scenes.length}, duration ${(scenes.reduce((s, x) => s + (x.duration ?? 0), 0) / 60).toFixed(1)} min, voice ${out.provenance.voice}`);
+  const seconds = scenes.reduce((s, x) => s + (x.duration ?? 0), 0);
+  const totals = out.provenance.runs.reduce((t, r) => ({ calls: t.calls + 1, cost: r.costUsd === null || t.cost === null ? null : t.cost + r.costUsd }), { calls: 0, cost: 0 });
+  console.log(`mode ${out.provenance.mode ?? "full"}, scenes ${scenes.length}, duration ${seconds.toFixed(1)} s (${(seconds / 60).toFixed(1)} min), voice ${out.provenance.voice}`);
+  console.log(`wall time ${((Date.now() - t0) / 1000).toFixed(1)} s, model calls ${totals.calls}, estimated cost ${totals.cost === null ? "n/a" : "$" + totals.cost.toFixed(4)}`);
   for (const n of l.verification.notes) console.log("  note:", n);
   console.log(`open: /lesson/${id}`);
 } catch (err) {

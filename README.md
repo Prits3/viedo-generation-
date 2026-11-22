@@ -88,6 +88,21 @@ input -> source blocks -> content inventory -> storyboard -> checked scenes -> f
 
 **The robot duck** (`src/components/Duck.tsx`) is one SVG character built from layers (body, wing, head, eye, eyelid, beak, antenna). Actions: enter, look, lean, point, wow, listen. It stands in a lane the scene layout keeps free; when an action names an element, head, eye and wing turn towards that element's real position on screen. The browser check verifies in every scene that it covers no value, caption or source button.
 
+## Short mode and dropped files
+
+**Short ("Highlights")** is the default on the upload page; **Full lesson** is the other choice. A short is 45 to 90 seconds: a hook (a question the source answers), the most important points, one takeaway, in 5 to 7 sparse scenes. It is a normal `paperscenes.lesson` v2 file and plays in the same player. All of its scenes are in the intro and it has no chapters; `provenance.mode` and `lesson.meta.mode` say `"short"` (files without the field are full lessons).
+
+What differs from the full pipeline (`src/lib/short.ts`, `buildShortStoryboard` in `src/lib/generate.ts`):
+
+- The storyboard is offered only the most important inventory entries (at most 24: quote found in the source, results and conclusions first, numbers preferred), not the whole inventory.
+- A short is only ever cut, never padded. A sentence that fails the number check or the claim check is removed when its scene still stands without it; otherwise the scene is rewritten once (at most 2 rewrites per short, by the strong model) and compared with its passages again; a point that still fails is left out. Every cut is listed in the lesson's notes.
+- If the checks leave less than about 45 seconds, the storyboard is written once more with the failed sentences as feedback, and the longer result is kept.
+- No figure step. After narration the recorded length is measured, and a short over 90 seconds loses sentences or a point.
+
+**Files** can be dropped anywhere on the upload page or chosen in the box: `.pdf`, `.docx`, `.pptx`, `.txt`, `.md`. Word and PowerPoint files are read without any extra package (`src/lib/zip.ts`, `src/lib/office.ts`): a Word file becomes one block per paragraph, with headings attached to the paragraph after them; a PowerPoint file becomes one block per slide, so "§4" is slide 4. Only text is read: no pictures, charts, speaker notes, comments, headers or footers. A wrong kind of file, a damaged archive, a password-protected file and a file with too little text each get their own message.
+
+`npm run check:inputs` tests the readers and the short-mode rules offline (no model, no server). `npm run check:shorts -- <lesson id>` (or `-- --all`) measures finished shorts in the store: scene count, length, sources, number check, recorded mode.
+
 ## Confirmed Bedrock capabilities
 
 Checked on 2026-11-21 with the team's key against the AWS documentation ([API keys](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-use.html), [regions](https://docs.aws.amazon.com/bedrock/latest/userguide/models-region-compatibility.html), [API compatibility](https://docs.aws.amazon.com/bedrock/latest/userguide/models-api-compatibility.html), [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html)) and with small live calls.
@@ -158,7 +173,9 @@ Enforced on the server (`src/lib/limits.ts`), chosen for a hackathon demo:
 |---|---|
 | PDF | 15 MB, 40 pages, 200,000 characters of text; longer papers are rejected, nothing is cut silently |
 | Minimum text in a PDF | 1,500 characters, otherwise "scan without text layer" |
-| Pasted text | 400 to 60,000 characters, 200 paragraphs |
+| Pasted text, `.txt`, `.md` | 400 to 60,000 characters, 200 paragraphs |
+| Word, PowerPoint | 15 MB, 400 to 200,000 characters of text, 800 paragraphs or 80 slides |
+| Short mode | 5 to 7 scenes, 45 to 90 seconds, at most 2 scene rewrites, no figures |
 | Generations | 4 per visitor per 10 minutes (a regenerated scene counts as one), 2 at the same time per server |
 | One model call | 5 minutes; at most 2 retries after a rate limit, a 5xx or a dropped connection; one retry after a malformed answer |
 | Repairs | one automatic repair per failing scene, at most 10 per lesson |
@@ -172,7 +189,9 @@ A refusal by a content filter ends the run at once and removes it. A rate limit,
 |---|---|
 | `npm run verify:demo` | Checks the demo lesson against the PDF and writes the verification report. |
 | `npm run e2e -- http://localhost:3000` | Browser check of the jury walkthrough on desktop and phone, keyboard, reduced motion, mascot placement (Playwright). `--errors <dir>` adds broken and scanned PDFs. `--upload <pdf>` and `--text <file>` run real generations and check storing, reopening, interrupting, resuming and regenerating (costs tokens). |
-| `node scripts/generate.mjs <pdf or txt>` | Runs the same pipeline from the command line and stores the lesson. `--resume <id>` continues a run. |
+| `node scripts/generate.mjs <pdf, docx, pptx, txt or md>` | Runs the same pipeline from the command line and stores the lesson. `--mode short` makes the 45 to 90 second highlights (default: full lesson). `--resume <id>` continues a run. |
+| `npm run check:inputs` | Offline checks of the Word, PowerPoint and text readers (including damaged, protected and empty files) and of the short-mode rules. `node scripts/make-fixtures.mjs` rebuilds the two fixtures in `tests/fixtures/`. |
+| `npm run check:shorts -- <lesson id> \| --all` | Measures finished shorts in the lesson store against the short-mode bounds and the source checks. |
 | `node scripts/bench-models.mjs <pdf or txt> <model> ...` | Compares models on the inventory step: time, tokens, cost, share of quotes found. |
 | `node scripts/check-upload-failures.mjs <txt>` | Missing key, Bedrock rate limit, missing model access, content refusal, Anthropic rate limit, the server's own limit; against a local mock provider. Needs `npm run build` first. |
 | `node scripts/shots.mjs <url> <lesson path> <dir>` | Screenshots of every scene, for a visual check. |

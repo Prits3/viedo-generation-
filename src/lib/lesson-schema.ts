@@ -91,6 +91,11 @@ export const StoryboardDraftSchema = z.object({
   ),
 });
 
+// ───────────────────────── step 2, short mode: one run of scenes (strong model) ─────────────────────────
+export const ShortStoryboardSchema = z.object({
+  scenes: z.array(SceneSchema).describe("5-7 scenes in playing order: the hook first, the takeaway last"),
+});
+
 // ───────────────────────── optional: describing an original figure or table (vision model) ─────────────────────────
 export const FigureReadSchema = z.object({
   usable: z.boolean().describe("false if the image does not show the figure or table that was asked for, or is unreadable"),
@@ -107,6 +112,7 @@ export type InventoryDraft = z.infer<typeof InventoryDraftSchema>;
 export type ItemDraft = z.infer<typeof ItemSchema>;
 export type StoryboardDraft = z.infer<typeof StoryboardDraftSchema>;
 export type SceneDraft = z.infer<typeof SceneSchema>;
+export type ShortStoryboardDraft = z.infer<typeof ShortStoryboardSchema>;
 export type FigureRead = z.infer<typeof FigureReadSchema>;
 
 // ───────────────────────── claim check: narration against its cited passages (strong model) ─────────────────────────

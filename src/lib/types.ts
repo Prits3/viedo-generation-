@@ -340,6 +340,8 @@ export interface LessonMeta {
   pages: number;
   /** pdf: locations are pages. text: locations are paragraphs of the pasted text. */
   sourceKind?: "pdf" | "text";
+  /** "short": a 45-90 second summary whose scenes are all in the intro. Absent means a full lesson. */
+  mode?: "full" | "short";
 }
 
 /** One paragraph of a pasted text (the "page" of a text lesson). */

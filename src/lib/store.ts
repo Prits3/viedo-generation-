@@ -2,7 +2,7 @@
 //
 //   <store>/<id>/job.json          progress of the generation (stage, runs, error)
 //   <store>/<id>/source.json       the source blocks the lesson was built from
-//   <store>/<id>/source.pdf        the uploaded PDF (PDF lessons)
+//   <store>/<id>/source.pdf        the uploaded PDF (PDF lessons); source.docx / source.pptx likewise
 //   <store>/<id>/inventory.json    checkpoint: model draft of the inventory
 //   <store>/<id>/storyboard.json   checkpoint: model draft of the storyboard
 //   <store>/<id>/scenes.json       checkpoint: checked (and repaired) scenes
@@ -20,6 +20,7 @@ import { LessonFileSchema, type LessonFile } from "./lesson-file.ts";
 import type { RunRecord } from "./providers.ts";
 import type { ProviderId, Role } from "./models.ts";
 import { GenerateError } from "./errors.ts";
+import type { LessonMode } from "./limits.ts";
 
 export const STAGES = ["reading", "inventory", "storyboard", "checking", "figures", "voice", "saving"] as const;
 export type Stage = (typeof STAGES)[number];
@@ -30,7 +31,10 @@ export interface Job {
   updatedAt: string;
   status: "running" | "interrupted" | "failed" | "done";
   stage: Stage;
-  input: { kind: "pdf" | "text"; name: string; hash?: string; chars?: number; count?: number };
+  /** Absent in jobs stored before short mode existed: those are full lessons. */
+  mode?: LessonMode;
+  /** `format` is what was uploaded (absent in older jobs: the same as `kind`). */
+  input: { kind: "pdf" | "text"; format?: "pdf" | "text" | "docx" | "pptx"; name: string; hash?: string; chars?: number; count?: number };
   provider: ProviderId;
   models: Record<Role, string>;
   runs: RunRecord[];
@@ -126,6 +130,10 @@ export interface LessonSummary {
   id: string;
   title: string;
   kind: "pdf" | "text";
+  format: "pdf" | "text" | "docx" | "pptx";
+  mode: LessonMode;
+  /** Playing time in seconds, for finished lessons. */
+  seconds?: number;
   status: Job["status"];
   stage: Stage;
   updatedAt: string;
@@ -142,14 +150,18 @@ export function listLessons(): LessonSummary[] {
     const job = loadJob(id);
     if (!job) continue;
     const file = job.status === "done" ? loadLesson(id) : null;
+    const scenes = file ? [...file.lesson.intro.scenes, ...file.lesson.chapters.flatMap((c) => c.scenes)] : [];
     out.push({
       id,
       title: file?.lesson.meta.title ?? job.title ?? job.input.name,
       kind: job.input.kind,
+      format: job.input.format ?? job.input.kind,
+      mode: file?.provenance.mode ?? job.mode ?? "full",
+      seconds: file ? Math.round(scenes.reduce((s, sc) => s + (sc.duration ?? 0), 0)) : undefined,
       status: job.status === "done" && !file ? "failed" : job.status,
       stage: job.stage,
       updatedAt: job.updatedAt,
-      scenes: file ? file.lesson.intro.scenes.length + file.lesson.chapters.reduce((n, c) => n + c.scenes.length, 0) : undefined,
+      scenes: file ? scenes.length : undefined,
       voice: file?.provenance.voice,
     });
   }

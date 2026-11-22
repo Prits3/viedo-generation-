@@ -10,7 +10,7 @@ export default function Home() {
       <section className="hero">
         <h1>Watch the paper. Check every claim.</h1>
         <p className="lead">
-          PaperScenes turns a research paper or a text into a short narrated, visual lesson, guided by a small robot duck. You set the pace, the sound, the captions and the amount of motion.
+          PaperScenes turns a paper, a document, a slide deck or a text into a one-minute short or a full narrated, visual lesson, guided by a small robot duck. You set the pace, the sound, the captions and the amount of motion.
           Every statement links straight to its passage in the original.
         </p>
         <div className="hero__actions">
@@ -19,8 +19,8 @@ export default function Home() {
             <small>Urban trees and heat in 293 European cities</small>
           </Link>
           <Link href="/upload" className="btn" data-action="upload">
-            <strong>Upload a PDF</strong>
-            <small>Or paste a text, and get your own lesson</small>
+            <strong>Drop in a file</strong>
+            <small>PDF, Word, PowerPoint or text: a one-minute short or a full lesson</small>
           </Link>
         </div>
       </section>

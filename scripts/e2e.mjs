@@ -508,7 +508,7 @@ async function regenerateCheck(tag, page, id) {
 
 async function uploadLive(pdf) {
   const { ctx, page, errors } = await newPage({ viewport: { width: 1440, height: 900 } });
-  await page.goto(base + "/upload", { waitUntil: "networkidle" });
+  await page.goto(base + "/upload?mode=full", { waitUntil: "networkidle" });
   const setup = await page.locator("[data-setup]").innerText();
   check("pdf: upload page shows the provider (Bedrock by default), the model per task and the voice, never a key", /Amazon Bedrock/.test(setup) && /Inventory and repairs/.test(setup) && /Storyboard and narration/.test(setup) && /key present/.test(setup) && !/ABSK|sk-ant/.test(await page.content()), setup.replace(/\s+/g, " ").slice(0, 160));
   await page.screenshot({ path: `${OUT}/pdf-01-idle.png` });
@@ -556,7 +556,7 @@ async function uploadLive(pdf) {
 
 async function textLive(path) {
   const { ctx, page, errors } = await newPage({ viewport: { width: 1440, height: 900 } });
-  await page.goto(base + "/upload", { waitUntil: "networkidle" });
+  await page.goto(base + "/upload?mode=full", { waitUntil: "networkidle" });
   await page.click('[data-input="text"]');
   await page.fill('[data-input="text-area"]', readFileSync(path, "utf8"));
   await page.screenshot({ path: `${OUT}/text-01-paste.png` });

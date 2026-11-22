@@ -1,8 +1,9 @@
 // POST /api/generate   multipart form with one of:
-//     file     a PDF with a text layer
+//     file     a PDF with a text layer, a Word file (.docx), a PowerPoint file (.pptx) or a text file (.txt, .md)
 //     text     pasted text (optional: title)
 //     resume   ID of an interrupted or failed generation
 //   optional: provider = "bedrock" | "anthropic"
+//   optional: mode = "short" (45-90 second highlights) | "full" (default: the lesson with chapters)
 // Streams newline-delimited JSON events so the page can show real progress:
 //   job -> stage(reading) -> extracted -> stage(inventory) -> run -> stage(storyboard) -> run
 //   -> stage(checking) -> scene... -> stage(figures) -> stage(voice) -> voice... -> stage(saving)
@@ -10,9 +11,10 @@
 // GET /api/generate reports which providers are configured (never the keys), the models per role,
 // whether the local voice is available, and the limits.
 import { GenerateError } from "@/lib/errors";
-import { ERROR_TEXT, LIMITS, publicLimits, type GenerateErrorCode } from "@/lib/limits";
+import { ERROR_TEXT, LIMITS, asMode, publicLimits, type GenerateErrorCode } from "@/lib/limits";
 import { defaultProvider, modelsFor, providerConfigured, type ProviderId } from "@/lib/models";
-import { createJob, runPipeline } from "@/lib/pipeline";
+import { createJob, runPipeline, type JobInput } from "@/lib/pipeline";
+import { formatOf, textFromBytes } from "@/lib/source";
 import { loadJob, removeLesson, has } from "@/lib/store";
 import { busy, clientKey, enter, leave, rateLimited, RATE_TEXT } from "@/lib/ratelimit";
 import { voiceSetup } from "@/lib/voice";
@@ -67,10 +69,24 @@ export async function POST(req: Request) {
     // Without a provider the input is still read, so the page can say what is wrong with the file
     // before it says that no key is configured.
     const title = form.get("title");
-    const job =
-      file instanceof File && file.size > 0
-        ? createJob({ kind: "pdf", name: file.name || "upload.pdf", bytes: new Uint8Array(await file.arrayBuffer()) }, provider ?? "bedrock")
-        : createJob({ kind: "text", name: typeof title === "string" && title.trim() ? title.trim().slice(0, 120) : "Pasted text", text: String(text) }, provider ?? "bedrock");
+    let input: JobInput;
+    if (file instanceof File && file.size > 0) {
+      // The reader is chosen here, from the first bytes and the name; whether the file can actually
+      // be read is found out in the pipeline's first step and reported from there.
+      const name = file.name || "upload.pdf";
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const format = formatOf(name, bytes);
+      if (!format) return Response.json(fail("unsupported_type", `"${name.slice(-40)}" is not one of the accepted kinds of file.`), { status: 415 });
+      if (format === "text") {
+        try {
+          input = { kind: "text", name: name.replace(/\.[a-z0-9]+$/i, "").slice(0, 120), text: textFromBytes(bytes, name) };
+        } catch (err) {
+          return Response.json(fail("unsupported_type", err instanceof GenerateError ? err.message : undefined), { status: 415 });
+        }
+        if (input.text.length > LIMITS.maxPastedChars * 1.2) return Response.json(fail("too_long"), { status: 413 });
+      } else input = { kind: format, name, bytes };
+    } else input = { kind: "text", name: typeof title === "string" && title.trim() ? title.trim().slice(0, 120) : "Pasted text", text: String(text) };
+    const job = createJob(input, provider ?? "bedrock", asMode(form.get("mode")));
     jobId = job.id;
     fresh = true;
   }

@@ -127,6 +127,7 @@ const LessonSchema = z.object({
     pdfUrl: z.string(),
     pages: z.number().int(),
     sourceKind: z.enum(["pdf", "text"]).optional(),
+    mode: z.enum(["full", "short"]).optional(),
   }),
   inventory: z.array(Item),
   intro: Chapter,
@@ -166,7 +167,11 @@ export const LessonFileSchema = z.object({
   revision: z.number().int().min(1),
   savedAt: z.string(),
   provenance: z.object({
+    /** How the lesson was generated. Absent in files written before short mode existed: "full". */
+    mode: z.enum(["full", "short"]).optional(),
     sourceKind: z.enum(["pdf", "text"]),
+    /** The uploaded format when it is more specific than sourceKind (a Word or PowerPoint file). */
+    sourceFormat: z.enum(["pdf", "text", "docx", "pptx"]).optional(),
     sourceName: z.string(),
     /** sha256 of the uploaded bytes or pasted text. */
     sourceHash: z.string(),
