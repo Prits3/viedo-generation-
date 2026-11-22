@@ -13,12 +13,14 @@ export interface VideoFinding {
 }
 
 /** Offline review of a timed storyboard. Warnings are editorial heuristics, not scores. */
-export function inspectVideo(lesson: Lesson, format: VideoFormat) {
-  const plan = planVideo(lesson);
+export function inspectVideo(lesson: Lesson, format: VideoFormat, onlyScene?: string) {
+  const plan = planVideo(lesson, onlyScene ? { fromScene: onlyScene, endCard: 0 } : undefined);
+  if (onlyScene && plan.scenes[0]?.scene.id !== onlyScene) throw new Error("The preview needs a timed scene.");
+  const scenes = onlyScene ? plan.scenes.slice(0, 1) : plan.scenes;
   const findings: VideoFinding[] = [];
   const byId = new Map(lesson.inventory.map((item) => [item.id, item]));
-  const shots = new Map<number, { frame: number; sceneId?: string; kind: "entry" | "focus" | "end-card" }>();
-  const addShot = (seconds: number, kind: "entry" | "focus" | "end-card", sceneId?: string) => {
+  const shots = new Map<number, { frame: number; sceneId?: string; kind: "entry" | "focus" | "exit" | "end-card" }>();
+  const addShot = (seconds: number, kind: "entry" | "focus" | "exit" | "end-card", sceneId?: string) => {
     const frame = Math.max(0, Math.min(plan.frames - 1, Math.ceil(seconds * plan.fps - 0.5)));
     if (!shots.has(frame)) shots.set(frame, { frame, sceneId, kind });
   };
@@ -26,7 +28,7 @@ export function inspectVideo(lesson: Lesson, format: VideoFormat) {
   if (!plan.scenes.length) findings.push({ code: "video.no-timeline", severity: "error", action: "Generate a lesson with timed scenes before reviewing a video." });
   let previousEnd: number | undefined;
   let cues = 0;
-  for (const { scene, start, length } of plan.scenes) {
+  for (const { scene, start, length } of scenes) {
     const sceneId = scene.id;
     findings.push(...chartFindings(scene, byId).map((f): VideoFinding => ({ ...f, sceneId, severity: "error" })));
     if (scene.check?.status === "flagged") findings.push({ code: "source.flagged-scene", severity: "error", sceneId, action: "Review this scene against its cited passages before publishing." });
@@ -46,8 +48,16 @@ export function inspectVideo(lesson: Lesson, format: VideoFormat) {
         findings.push({ code: "pacing.scene-gap", severity: "warning", sceneId, action: `The scheduled gap is ${gap}s. Shorten it unless the viewer needs time to read the picture.` });
       }
       if (i === scene.cues.length - 1) previousEnd = start + end;
-      addShot(start + Math.min(length - 0.5 / plan.fps, at + (end - at) * 0.5), "focus", sceneId);
+      if (!onlyScene) addShot(start + Math.min(length - 0.5 / plan.fps, at + (end - at) * 0.5), "focus", sceneId);
     });
+    if (onlyScene) {
+      const last = Math.min(plan.frames - 1, Math.ceil(length * plan.fps - 0.5) - 1);
+      const cue = scene.cues.at(-1);
+      const focus = cue?.start !== undefined && cue.end !== undefined ? (cue.start + cue.end) / 2 : length / 2;
+      if (last < 2) throw new Error("A timed scene needs at least three frames to preview.");
+      addShot(Math.max(1, Math.min(last - 1, Math.round(focus * plan.fps))) / plan.fps, "focus", sceneId);
+      addShot(last / plan.fps, "exit", sceneId);
+    }
   }
   if (plan.scenes.length && plan.endCard > 0) addShot(plan.content + plan.endCard * 0.5, "end-card");
   return {
@@ -57,7 +67,8 @@ export function inspectVideo(lesson: Lesson, format: VideoFormat) {
     fps: plan.fps,
     totalFrames: plan.frames,
     duration: plan.duration,
-    scenes: plan.scenes.length,
+    scenes: scenes.length,
+    ...(onlyScene ? { sceneId: onlyScene } : {}),
     cues,
     frames: [...shots.values()].sort((a, b) => a.frame - b.frame),
     findings,

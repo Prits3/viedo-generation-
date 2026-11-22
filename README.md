@@ -146,6 +146,19 @@ The first command is offline and reads `lesson.json` from the lesson store (set 
 
 For an agent: read `findings[]` in `paperscenes.video-quality@1`, prioritise errors, and improve only the named scene using its cited source. Compare the same frames from two revisions, then export and run `check-export` for real audio/video synchronisation. Review one pass on a phone: can a viewer read the main claim and say what was compared, by how much, and under which conditions? Keep only changes that improve the answer without adding claims.
 
+### Edit only the picture of one scene
+
+```bash
+npm run --silent video:scene -- inspect <lessonId> <sceneId>
+npm run --silent video:scene -- apply <lessonId> patch.json --out variant.json
+node scripts/video-quality.mjs <lessonId> --scene <sceneId> --base http://127.0.0.1:3000 --frames-dir before
+node scripts/video-quality.mjs <lessonId> --scene <sceneId> --visual-patch patch.json --base http://127.0.0.1:3000 --frames-dir after
+```
+
+The inspector returns the scene, its cited passages and a `suggestedPatch` when it finds a valid comparison. Copy that object to `patch.json`. The patch binds a lesson ID, a scene ID and the base revision to `visual: { "type": "comparison", "refs": ["R-01", "R-02"] }`. You may set `contextRef` to one of those references if it contains a short, verbatim measurement condition. The tool derives groups, values and labels from the cited evidence, requires separate timed cues, and rejects stale or invalid patches. The first supported edit turns a statement, points or an existing comparison into a two-measurement comparison.
+
+`apply` writes a new file (never overwrites one) and preserves the cues, caption timings, audio references and other scenes. The two preview commands capture the same three times: entry, a moment during the last line, and exit. They use the existing local render server; the patched preview serves its variant only inside the browser session. No model call, audio generation or full export is needed. Keep the original as the baseline. The variant is a review artifact, not an in-place edit or a publish step.
+
 The picture must carry evidence, not duplicate the transcript. Two cited scalars get large portrait tiles; ranges keep the shared axis. The assembler checks the group label, plotted endpoints and units against matched inventory quotes. Counts such as “31 of 40 pairs” retain their total and only share an axis with counts out of the same total. An ambiguous comparison falls back to cited text cards. The export renderer also checks older lesson files; already generated MP4s are unchanged until re-exported. This is a conservative text check, not a guarantee of semantic accuracy. Complex notation, ambiguous quotes or values only visible in an image may need a source figure or editorial review.
 
 ## Confirmed Bedrock capabilities
