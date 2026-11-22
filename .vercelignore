@@ -1,0 +1,5 @@
+# Build output / caches
+.next/
+test-results/
+# Stray large demo video from another branch (not used by this app)
+public/mp4/

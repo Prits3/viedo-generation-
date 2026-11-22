@@ -274,12 +274,12 @@ export function UploadFlow() {
 
       {config && !config.configured && stage !== "error" && (
         <div className="alert alert--info" role="status" data-upload-state="not-configured">
-          <h2>Live generation is not configured on this server</h2>
+          <h2>AI generation is temporarily unavailable</h2>
           <p>
-            No model key is set (<code>AWS_BEARER_TOKEN_BEDROCK</code> or <code>ANTHROPIC_API_KEY</code>). You can still try an upload to see what happens, or open the example, which runs without a key.
+            Generating a lesson from your own file isn’t available right now. In the meantime you can watch the fully prepared example lesson, which plays without AI generation.
           </p>
           <Link href="/lesson/demo" className="btn btn--primary">
-            Open the example
+            Try the example lesson
           </Link>
         </div>
       )}
