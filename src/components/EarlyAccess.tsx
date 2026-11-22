@@ -1,34 +1,15 @@
 "use client";
 // Early-access sign-up on the start page. There are no accounts yet; the address only puts the
-// visitor on the list for when sign-in opens. On Netlify it goes to Netlify Forms (public/__forms.html),
-// elsewhere to /api/signup.
+// visitor on the list for when sign-in opens. Submissions are stored in Supabase `public.waitlist`
+// via the REST API using the PUBLISHABLE (anon) key and the table's insert-only RLS policy — this
+// works on serverless/Vercel. Reads are blocked for this key, so the list is never exposed.
 import { useState } from "react";
 
-type State = { kind: "idle" | "sending" | "done" } | { kind: "error"; message: string };
+type State = { kind: "idle" | "sending" | "done" | "exists" } | { kind: "error"; message: string };
 
-async function viaNetlify(email: string, trap: string): Promise<boolean> {
-  try {
-    const res = await fetch("/__forms.html", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ "form-name": "early-access", email, "bot-field": trap }).toString(),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function viaApi(email: string, trap: string): Promise<string | null> {
-  try {
-    const res = await fetch("/api/signup", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, website: trap }) });
-    if (res.ok) return null;
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
-    return data.error ?? "Something went wrong. Please try again.";
-  } catch {
-    return "No connection. Please try again.";
-  }
-}
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const FAILURE = "We couldn’t complete your signup. Please try again.";
 
 export function EarlyAccess() {
   const [email, setEmail] = useState("");
@@ -37,13 +18,38 @@ export function EarlyAccess() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const value = email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) return setState({ kind: "error", message: "Please enter a valid email address." });
+    const value = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
+      return setState({ kind: "error", message: "Please enter a valid email address." });
+    }
+    if (trap) return setState({ kind: "done" }); // honeypot filled: a bot, pretend success
+
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      return setState({ kind: "error", message: FAILURE });
+    }
+
     setState({ kind: "sending" });
-    if (await viaNetlify(value, trap)) return setState({ kind: "done" });
-    const error = await viaApi(value, trap);
-    setState(error ? { kind: "error", message: error } : { kind: "done" });
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "content-type": "application/json",
+          Prefer: "return=minimal",
+        },
+        // The note below states the email is used for sign-in and launch news, so consent is given.
+        body: JSON.stringify({ email: value, source: "landing_page", marketing_consent: true }),
+      });
+      if (res.status === 201 || res.status === 200 || res.status === 204) return setState({ kind: "done" });
+      if (res.status === 409) return setState({ kind: "exists" }); // unique_violation → already on the list
+      return setState({ kind: "error", message: FAILURE });
+    } catch {
+      return setState({ kind: "error", message: FAILURE });
+    }
   }
+
+  const settled = state.kind === "done" || state.kind === "exists";
 
   return (
     <section className="early" aria-labelledby="early-title">
@@ -51,9 +57,9 @@ export function EarlyAccess() {
         <h2 id="early-title">Get early access</h2>
         <p>Accounts with your own library are coming. Leave your email and we tell you when sign-in opens.</p>
       </div>
-      {state.kind === "done" ? (
+      {settled ? (
         <p className="early__done" role="status" data-state="signup-done">
-          Thanks, you are on the list.
+          {state.kind === "done" ? "You’re signed up!" : "You’re already signed up."}
         </p>
       ) : (
         <form className="early__form" onSubmit={submit} noValidate>
